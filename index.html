@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Central de POPs — V4 Company</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <style>
   :root {
     --red: #E8001D;
@@ -556,6 +557,453 @@
   ::-webkit-scrollbar { width: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--gray-border); border-radius: 3px; }
+
+  /* ── LUCIDE ICONS ── */
+  .nav-item .icon svg { width: 14px; height: 14px; }
+  .s-icon svg { width: 15px; height: 15px; }
+  .sector-icon svg { width: 20px; height: 20px; color: var(--red); }
+  .ph-icon svg { width: 26px; height: 26px; color: var(--red); }
+  .pop-icon svg { width: 18px; height: 18px; color: var(--gray-text); }
+  .upload-icon svg { width: 30px; height: 30px; color: var(--gray-text); }
+  .back-btn svg { width: 14px; height: 14px; }
+  .modal-close svg { width: 18px; height: 18px; }
+  .sector-arrow svg { width: 14px; height: 14px; }
+  .file-item svg { width: 13px; height: 13px; color: var(--gray-text); }
+  .file-remove svg { width: 13px; height: 13px; }
+  .pop-meta svg { width: 11px; height: 11px; vertical-align: -1px; }
+  .toast svg { width: 14px; height: 14px; vertical-align: -2px; }
+  .dot-alta svg { width: 9px; height: 9px; fill: var(--red); color: var(--red); }
+  .dot-media svg { width: 9px; height: 9px; fill: #f59e0b; color: #f59e0b; }
+  .dot-baixa svg { width: 9px; height: 9px; fill: #22c55e; color: #22c55e; }
+  .dot-alta { color: var(--red); }
+  .dot-media { color: #f59e0b; }
+  .dot-baixa { color: #22c55e; }
+
+  /* ── POP CARDS ── */
+  .pop-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+  }
+  .pop-card {
+    background: var(--gray-dark);
+    border: 1px solid var(--gray-border);
+    border-radius: 12px;
+    padding: 18px 18px 14px;
+    cursor: pointer;
+    transition: all 0.22s;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .pop-card:hover { border-color: #3a3a3a; transform: translateY(-2px); box-shadow: 0 10px 28px rgba(0,0,0,0.35); }
+  .pop-card-top { display: flex; align-items: flex-start; justify-content: space-between; }
+  .link-badge {
+    width: 40px; height: 40px;
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .link-badge svg { width: 19px; height: 19px; }
+  .pop-card-delete {
+    background: none; border: none; color: var(--gray-text);
+    cursor: pointer; padding: 3px; border-radius: 4px;
+    transition: color 0.2s; line-height: 1;
+  }
+  .pop-card-delete:hover { color: var(--red); }
+  .pop-card-delete svg { width: 14px; height: 14px; }
+  .pop-card-name { font-size: 14px; font-weight: 600; color: var(--white-pure); line-height: 1.35; }
+  .pop-card-sector { font-size: 11px; color: var(--gray-text); }
+  .pop-card-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-top: 10px; border-top: 1px solid var(--gray-border); margin-top: auto;
+  }
+  .pop-card-service { font-size: 10px; color: var(--gray-text); letter-spacing: 0.3px; text-transform: uppercase; }
+  .pop-card-open {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 12px; border-radius: 6px;
+    background: var(--red); border: none; color: white;
+    font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 600;
+    cursor: pointer; transition: background 0.2s; text-decoration: none;
+  }
+  .pop-card-open:hover { background: var(--red-dark); }
+  .pop-card-open svg { width: 11px; height: 11px; }
+
+  /* ── LINK INPUT ── */
+  .link-input-wrap { position: relative; }
+  .link-input-icon {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    pointer-events: none; color: var(--gray-text);
+  }
+  .link-input-icon svg { width: 14px; height: 14px; }
+  .link-input-wrap .form-input { padding-left: 36px; }
+  .link-preview {
+    display: none; align-items: center; gap: 8px;
+    padding: 7px 12px; background: var(--gray-mid);
+    border: 1px solid var(--gray-border); border-radius: 6px;
+    font-size: 11px; color: var(--gray-text); margin-top: 6px;
+    overflow: hidden;
+  }
+  .link-preview svg { width: 13px; height: 13px; flex-shrink: 0; }
+  .link-preview-url {
+    color: var(--white); overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; flex: 1;
+  }
+
+  /* ══════════════════════════════════════════
+     CHAT FLUTUANTE
+  ══════════════════════════════════════════ */
+
+  /* Botão flutuante */
+  .chat-fab {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--red);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(232,0,29,0.4);
+    transition: all 0.2s;
+    z-index: 400;
+    color: white;
+  }
+  .chat-fab:hover { background: var(--red-dark); transform: scale(1.07); }
+  .chat-fab svg { width: 22px; height: 22px; }
+  .chat-fab .badge {
+    position: absolute;
+    top: -3px; right: -3px;
+    width: 16px; height: 16px;
+    background: #22c55e;
+    border-radius: 50%;
+    border: 2px solid var(--black);
+    font-size: 9px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    color: white;
+  }
+
+  /* Janela do chat */
+  .chat-window {
+    position: fixed;
+    bottom: 92px;
+    right: 28px;
+    width: 360px;
+    height: 520px;
+    background: var(--gray-dark);
+    border: 1px solid var(--gray-border);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    z-index: 400;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    overflow: hidden;
+    transform: scale(0.92) translateY(16px);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.22s cubic-bezier(.4,0,.2,1);
+    transform-origin: bottom right;
+  }
+  .chat-window.open {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  /* Header do chat */
+  .chat-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--gray-border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--gray-dark);
+    flex-shrink: 0;
+  }
+  .chat-header-avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: rgba(232,0,29,0.12);
+    border: 1px solid rgba(232,0,29,0.25);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--red);
+    flex-shrink: 0;
+  }
+  .chat-header-avatar svg { width: 16px; height: 16px; }
+  .chat-header-info { flex: 1; }
+  .chat-header-info .chat-title {
+    font-size: 13px; font-weight: 700; color: var(--white-pure);
+  }
+  .chat-header-info .chat-subtitle {
+    font-size: 10px; color: var(--gray-text); margin-top: 1px;
+  }
+  .chat-header-actions { display: flex; gap: 4px; }
+  .chat-icon-btn {
+    background: none; border: none; color: var(--gray-text);
+    cursor: pointer; padding: 5px; border-radius: 6px;
+    transition: all 0.15s; line-height: 0;
+  }
+  .chat-icon-btn:hover { color: var(--white); background: rgba(255,255,255,0.06); }
+  .chat-icon-btn svg { width: 15px; height: 15px; }
+
+  /* Mensagens */
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 14px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    scroll-behavior: smooth;
+  }
+  .chat-messages::-webkit-scrollbar { width: 3px; }
+  .chat-messages::-webkit-scrollbar-thumb { background: var(--gray-border); border-radius: 2px; }
+
+  .chat-msg {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    max-width: 88%;
+    animation: msgIn 0.18s ease;
+  }
+  @keyframes msgIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+  .chat-msg.user { align-self: flex-end; align-items: flex-end; }
+  .chat-msg.ai   { align-self: flex-start; align-items: flex-start; }
+
+  .chat-msg .msg-sender {
+    font-size: 9px;
+    color: var(--gray-text);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 0 4px;
+  }
+  .chat-msg .msg-bubble {
+    padding: 9px 13px;
+    border-radius: 12px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    word-break: break-word;
+  }
+  .chat-msg.user .msg-bubble {
+    background: var(--red);
+    color: white;
+    border-bottom-right-radius: 3px;
+  }
+  .chat-msg.ai .msg-bubble {
+    background: var(--gray-mid);
+    border: 1px solid var(--gray-border);
+    color: var(--white);
+    border-bottom-left-radius: 3px;
+  }
+  .chat-msg .msg-time {
+    font-size: 9px;
+    color: var(--gray-text);
+    padding: 0 4px;
+  }
+
+  /* Typing indicator */
+  .typing-bubble {
+    background: var(--gray-mid);
+    border: 1px solid var(--gray-border);
+    border-radius: 12px;
+    border-bottom-left-radius: 3px;
+    padding: 10px 14px;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    align-self: flex-start;
+  }
+  .typing-bubble span {
+    width: 6px; height: 6px;
+    background: var(--gray-text);
+    border-radius: 50%;
+    animation: typingDot 1.2s infinite;
+  }
+  .typing-bubble span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-bubble span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typingDot {
+    0%,60%,100% { opacity: 0.3; transform: translateY(0); }
+    30% { opacity: 1; transform: translateY(-3px); }
+  }
+
+  /* Tela de boas-vindas / configuração */
+  .chat-screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 20px;
+    gap: 12px;
+    text-align: center;
+  }
+  .chat-screen .cs-icon {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: rgba(232,0,29,0.1);
+    border: 1px solid rgba(232,0,29,0.2);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--red); margin-bottom: 4px;
+  }
+  .chat-screen .cs-icon svg { width: 24px; height: 24px; }
+  .chat-screen h4 { font-size: 15px; font-weight: 700; color: var(--white-pure); }
+  .chat-screen p  { font-size: 12px; color: var(--gray-text); line-height: 1.5; }
+  .chat-screen .cs-input {
+    width: 100%;
+    background: var(--gray-mid);
+    border: 1px solid var(--gray-border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--white);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-top: 4px;
+  }
+  .chat-screen .cs-input:focus { border-color: var(--red); }
+  .chat-screen .cs-btn {
+    width: 100%;
+    background: var(--red);
+    border: none;
+    border-radius: 8px;
+    padding: 11px;
+    color: white;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .chat-screen .cs-btn:hover { background: var(--red-dark); }
+  .chat-screen .cs-note {
+    font-size: 10px;
+    color: var(--gray-text);
+    line-height: 1.6;
+  }
+  .chat-screen .cs-note code {
+    background: var(--gray-mid);
+    border: 1px solid var(--gray-border);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 10px;
+    color: var(--white);
+  }
+  .chat-screen .cs-link {
+    font-size: 10px;
+    color: var(--red);
+    cursor: pointer;
+    background: none; border: none;
+    font-family: 'Montserrat', sans-serif;
+    text-decoration: underline;
+    margin-top: 4px;
+  }
+
+  /* Barra de input */
+  .chat-input-bar {
+    padding: 10px 12px;
+    border-top: 1px solid var(--gray-border);
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    flex-shrink: 0;
+    background: var(--gray-dark);
+  }
+  .chat-input-bar textarea {
+    flex: 1;
+    background: var(--gray-mid);
+    border: 1px solid var(--gray-border);
+    border-radius: 10px;
+    padding: 9px 12px;
+    color: var(--white);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 12.5px;
+    resize: none;
+    outline: none;
+    line-height: 1.45;
+    max-height: 100px;
+    min-height: 38px;
+    transition: border-color 0.2s;
+    overflow-y: auto;
+  }
+  .chat-input-bar textarea:focus { border-color: var(--red); }
+  .chat-input-bar textarea::placeholder { color: var(--gray-text); }
+  .chat-send-btn {
+    width: 36px; height: 36px;
+    border-radius: 9px;
+    background: var(--red);
+    border: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: white;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .chat-send-btn:hover { background: var(--red-dark); }
+  .chat-send-btn:disabled { background: var(--gray-border); cursor: not-allowed; }
+  .chat-send-btn svg { width: 15px; height: 15px; }
+
+  /* Painel de configuração da API */
+  .api-config-bar {
+    padding: 8px 12px;
+    border-top: 1px solid var(--gray-border);
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-shrink: 0;
+    background: var(--gray-dark);
+    animation: msgIn 0.2s ease;
+  }
+  .api-config-bar input {
+    flex: 1;
+    background: var(--gray-mid);
+    border: 1px solid var(--gray-border);
+    border-radius: 7px;
+    padding: 7px 11px;
+    color: var(--white);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 11px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .api-config-bar input:focus { border-color: var(--red); }
+  .api-config-bar input::placeholder { color: var(--gray-text); }
+  .api-config-bar button {
+    padding: 7px 12px;
+    background: var(--red);
+    border: none;
+    border-radius: 7px;
+    color: white;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s;
+  }
+  .api-config-bar button:hover { background: var(--red-dark); }
+
+  /* Empty state das mensagens */
+  .chat-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--gray-text);
+    font-size: 12px;
+    text-align: center;
+    padding: 0 20px;
+  }
+  .chat-empty svg { width: 32px; height: 32px; opacity: 0.3; margin-bottom: 4px; }
 </style>
 </head>
 <body>
@@ -569,16 +1017,16 @@
   <nav class="sidebar-nav">
     <div class="nav-label">Navegação</div>
     <div class="nav-item active" onclick="showHome()" id="nav-home">
-      <span class="icon">⊞</span> Visão Geral
+      <span class="icon"><i data-lucide="layout-grid"></i></span> Visão Geral
     </div>
     <div class="nav-label">Setores</div>
-    <div class="nav-item" onclick="openSector(0)" id="nav-0"><span class="icon">📣</span> Comercial</div>
-    <div class="nav-item" onclick="openSector(1)" id="nav-1"><span class="icon">📈</span> Monetização</div>
-    <div class="nav-item" onclick="openSector(2)" id="nav-2"><span class="icon">⚙️</span> Operação PE&G</div>
-    <div class="nav-item" onclick="openSector(3)" id="nav-3"><span class="icon">💰</span> Adm. Financeiro</div>
-    <div class="nav-item" onclick="openSector(4)" id="nav-4"><span class="icon">👥</span> Adm. P&P</div>
-    <div class="nav-item" onclick="openSector(5)" id="nav-5"><span class="icon">🌟</span> Customer Success</div>
-    <div class="nav-item" onclick="openSector(6)" id="nav-6"><span class="icon">🤖</span> Tech & IA</div>
+    <div class="nav-item" onclick="openSector(0)" id="nav-0"><span class="icon"><i data-lucide="megaphone"></i></span> Comercial</div>
+    <div class="nav-item" onclick="openSector(1)" id="nav-1"><span class="icon"><i data-lucide="trending-up"></i></span> Monetização</div>
+    <div class="nav-item" onclick="openSector(2)" id="nav-2"><span class="icon"><i data-lucide="settings"></i></span> Operação PE&G</div>
+    <div class="nav-item" onclick="openSector(3)" id="nav-3"><span class="icon"><i data-lucide="dollar-sign"></i></span> Adm. Financeiro</div>
+    <div class="nav-item" onclick="openSector(4)" id="nav-4"><span class="icon"><i data-lucide="users"></i></span> Adm. P&P</div>
+    <div class="nav-item" onclick="openSector(5)" id="nav-5"><span class="icon"><i data-lucide="star"></i></span> Customer Success</div>
+    <div class="nav-item" onclick="openSector(6)" id="nav-6"><span class="icon"><i data-lucide="cpu"></i></span> Tech & IA</div>
   </nav>
   <div class="sidebar-footer">
     <button class="btn-add-pop" onclick="openModal()">＋ Novo POP</button>
@@ -593,7 +1041,7 @@
       <p id="page-sub">Todos os processos operacionais padrão da empresa</p>
     </div>
     <div class="search-bar">
-      <span class="s-icon">🔍</span>
+      <span class="s-icon"><i data-lucide="search"></i></span>
       <input type="text" placeholder="Buscar processo..." id="search-input" oninput="handleSearch()" />
     </div>
   </div>
@@ -602,7 +1050,7 @@
 
     <!-- HOME VIEW -->
     <div class="home-view" id="home-view">
-      <div class="overview-grid">
+      <div class="overview-grid" style="grid-template-columns:repeat(3,1fr)">
         <div class="stat-card accent">
           <div class="stat-label">Total de POPs</div>
           <div class="stat-value" id="total-pops">0</div>
@@ -614,14 +1062,9 @@
           <div class="stat-sub">Áreas da empresa</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Críticos</div>
-          <div class="stat-value" id="critical-count">0</div>
-          <div class="stat-sub">Prioridade alta</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Materiais</div>
-          <div class="stat-value" id="files-count">0</div>
-          <div class="stat-sub">Arquivos anexados</div>
+          <div class="stat-label">Setores utilizados</div>
+          <div class="stat-value" id="sectors-used">0</div>
+          <div class="stat-sub">Com POPs cadastrados</div>
         </div>
       </div>
 
@@ -635,7 +1078,7 @@
 
     <!-- PROCESS VIEW -->
     <div class="process-view" id="process-view">
-      <button class="back-btn" onclick="showHome()">← Voltar para Visão Geral</button>
+      <button class="back-btn" onclick="showHome()"><i data-lucide="arrow-left"></i> Voltar para Visão Geral</button>
       <div class="process-header">
         <div class="ph-icon" id="proc-icon"></div>
         <div>
@@ -643,13 +1086,7 @@
           <p id="proc-sub"></p>
         </div>
       </div>
-      <div class="filter-bar" id="filter-bar">
-        <button class="filter-chip active" onclick="filterPops('all', this)">Todos</button>
-        <button class="filter-chip" onclick="filterPops('alta', this)">🔴 Alta prioridade</button>
-        <button class="filter-chip" onclick="filterPops('media', this)">🟡 Média prioridade</button>
-        <button class="filter-chip" onclick="filterPops('baixa', this)">🟢 Baixa prioridade</button>
-      </div>
-      <div class="pop-list" id="pop-list"></div>
+      <div id="pop-list" class="pop-cards-grid"></div>
       <div style="margin-top:20px;">
         <button class="btn-save" onclick="openModal(currentSector)">＋ Adicionar POP neste Setor</button>
       </div>
@@ -664,55 +1101,37 @@
     <div class="modal-header">
       <div>
         <h3>Novo Processo (POP)</h3>
-        <p>Preencha as informações e suba os materiais</p>
+        <p>Preencha as informações do processo</p>
       </div>
-      <button class="modal-close" onclick="closeModal()">✕</button>
+      <button class="modal-close" onclick="closeModal()"><i data-lucide="x"></i></button>
     </div>
     <div class="modal-body">
       <div class="form-group">
         <label class="form-label">Nome do Processo *</label>
         <input class="form-input" id="f-name" type="text" placeholder="ex: Processo de Onboarding de Clientes" />
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Setor *</label>
-          <select class="form-select" id="f-sector">
-            <option value="">Selecione o setor...</option>
-            <option value="0">Comercial — Aquisição</option>
-            <option value="1">Monetização — Expansão</option>
-            <option value="2">Operação — PE&G</option>
-            <option value="3">Adm. Financeiro</option>
-            <option value="4">Adm. P&P</option>
-            <option value="5">Customer Success</option>
-            <option value="6">Tech & IA</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Responsável</label>
-          <input class="form-input" id="f-owner" type="text" placeholder="Nome ou cargo" />
-        </div>
+      <div class="form-group">
+        <label class="form-label">Setor *</label>
+        <select class="form-select" id="f-sector">
+          <option value="">Selecione o setor...</option>
+          <option value="0">Comercial — Aquisição</option>
+          <option value="1">Monetização — Expansão</option>
+          <option value="2">Operação — PE&G</option>
+          <option value="3">Adm. Financeiro</option>
+          <option value="4">Adm. P&P</option>
+          <option value="5">Customer Success</option>
+          <option value="6">Tech & IA</option>
+        </select>
       </div>
       <div class="form-group">
-        <label class="form-label">Descrição</label>
-        <textarea class="form-textarea" id="f-desc" placeholder="Objetivo e escopo do processo..."></textarea>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Prioridade</label>
-        <div class="priority-grid">
-          <button class="priority-btn low" onclick="selectPriority('baixa', this)">🟢 Baixa</button>
-          <button class="priority-btn medium selected medium" onclick="selectPriority('media', this)">🟡 Média</button>
-          <button class="priority-btn high" onclick="selectPriority('alta', this)">🔴 Alta</button>
+        <label class="form-label">Link do Arquivo *</label>
+        <div class="link-input-wrap">
+          <i data-lucide="link" class="link-input-icon"></i>
+          <input class="form-input" id="f-link" type="url"
+            placeholder="https://drive.google.com/..."
+            oninput="updateLinkPreview(this.value)" />
         </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Materiais do Processo</label>
-        <label class="upload-zone" for="file-upload">
-          <div class="upload-icon">📂</div>
-          <div class="upload-title">Clique para anexar arquivos</div>
-          <div class="upload-sub">PDF, DOCX, XLSX, MP4, PNG — qualquer formato</div>
-          <input type="file" id="file-upload" multiple onchange="handleFiles(this.files)" />
-        </label>
-        <div class="file-list" id="file-list"></div>
+        <div class="link-preview" id="link-preview"></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -723,32 +1142,118 @@
 </div>
 
 <!-- TOAST -->
-<div class="toast" id="toast">✓ POP salvo com sucesso!</div>
+<div class="toast" id="toast"><i data-lucide="check"></i> POP salvo com sucesso!</div>
+
+<!-- ══ CHAT FLUTUANTE ══════════════════════════════════════ -->
+
+<!-- Botão flutuante -->
+<button class="chat-fab" id="chat-fab" onclick="chatToggle()" title="Assistente de POPs">
+  <i data-lucide="message-circle"></i>
+</button>
+
+<!-- Janela do chat -->
+<div class="chat-window" id="chat-window">
+
+  <!-- Header -->
+  <div class="chat-header">
+    <div class="chat-header-avatar"><i data-lucide="bot"></i></div>
+    <div class="chat-header-info">
+      <div class="chat-title">Assistente de POPs</div>
+      <div class="chat-subtitle" id="chat-subtitle">Especialista em processos V4</div>
+    </div>
+    <div class="chat-header-actions">
+      <button class="chat-icon-btn" onclick="chatOpenConfig()" title="Configurar API">
+        <i data-lucide="settings"></i>
+      </button>
+      <button class="chat-icon-btn" onclick="chatClearHistory()" title="Limpar conversa">
+        <i data-lucide="trash-2"></i>
+      </button>
+      <button class="chat-icon-btn" onclick="chatToggle()" title="Fechar">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Área de conteúdo (trocada via JS) -->
+  <div id="chat-body" style="flex:1;display:flex;flex-direction:column;overflow:hidden;"></div>
+
+  <!-- Barra de input (oculta até o usuário se identificar e a key estar configurada) -->
+  <div class="chat-input-bar" id="chat-input-bar" style="display:none;">
+    <textarea id="chat-textarea" placeholder="Digite sua pergunta..." rows="1"
+      oninput="chatInputResize(this)" onkeydown="chatKeyDown(event)"></textarea>
+    <button class="chat-send-btn" id="chat-send-btn" onclick="chatSend()">
+      <i data-lucide="send"></i>
+    </button>
+  </div>
+
+</div>
 
 <script>
 const SECTORS = [
-  { name: "Comercial", sub: "Aquisição", icon: "📣", badge: "Receita" },
-  { name: "Monetização", sub: "Expansão", icon: "📈", badge: "Crescimento" },
-  { name: "Operação", sub: "PE&G", icon: "⚙️", badge: "Processos" },
-  { name: "Adm. Financeiro", sub: "Administrativo", icon: "💰", badge: "Finanças" },
-  { name: "Adm. P&P", sub: "Pessoas & Performance", icon: "👥", badge: "RH" },
-  { name: "Customer Success", sub: "Retenção & Satisfação", icon: "🌟", badge: "Clientes" },
-  { name: "Tech & IA", sub: "Tecnologia & Automação", icon: "🤖", badge: "Tech" },
+  { name: "Comercial", sub: "Aquisição", icon: '<i data-lucide="megaphone"></i>', badge: "Receita" },
+  { name: "Monetização", sub: "Expansão", icon: '<i data-lucide="trending-up"></i>', badge: "Crescimento" },
+  { name: "Operação", sub: "PE&G", icon: '<i data-lucide="settings"></i>', badge: "Processos" },
+  { name: "Adm. Financeiro", sub: "Administrativo", icon: '<i data-lucide="dollar-sign"></i>', badge: "Finanças" },
+  { name: "Adm. P&P", sub: "Pessoas & Performance", icon: '<i data-lucide="users"></i>', badge: "RH" },
+  { name: "Customer Success", sub: "Retenção & Satisfação", icon: '<i data-lucide="star"></i>', badge: "Clientes" },
+  { name: "Tech & IA", sub: "Tecnologia & Automação", icon: '<i data-lucide="cpu"></i>', badge: "Tech" },
 ];
+
+const LINK_TYPES = [
+  { test: u => /drive\.google|docs\.google|sheets\.google|slides\.google/.test(u),
+    icon: 'hard-drive', color: '#4285F4', label: 'Google Drive' },
+  { test: u => /onedrive\.live|sharepoint\.com|1drv\.ms/.test(u),
+    icon: 'cloud',      color: '#0078D4', label: 'OneDrive'     },
+  { test: u => /dropbox\.com/.test(u),
+    icon: 'box',        color: '#0061FF', label: 'Dropbox'      },
+  { test: u => /notion\.so/.test(u),
+    icon: 'book-open',  color: '#aaaaaa', label: 'Notion'       },
+  { test: u => /figma\.com/.test(u),
+    icon: 'pen-tool',   color: '#F24E1E', label: 'Figma'        },
+  { test: u => /\.pdf($|\?)/.test(u),
+    icon: 'file-text',  color: '#E8001D', label: 'PDF'          },
+];
+
+function getLinkInfo(url) {
+  if (!url) return { icon: 'link', color: '#888888', label: 'Link' };
+  const u = url.toLowerCase();
+  return LINK_TYPES.find(t => t.test(u)) || { icon: 'link', color: '#888888', label: 'Link externo' };
+}
+
+function hexToRgba(hex, alpha) {
+  if (!hex.startsWith('#')) return `rgba(136,136,136,${alpha})`;
+  const r = parseInt(hex.slice(1,3), 16);
+  const g = parseInt(hex.slice(3,5), 16);
+  const b = parseInt(hex.slice(5,7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function esc(str) {
+  return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
 let pops = [];
 let currentSector = null;
-let currentPriority = 'media';
-let currentFiles = [];
-let currentFilter = 'all';
+
+function savePops() {
+  localStorage.setItem('v4_pops', JSON.stringify(pops));
+}
+
+function loadPops() {
+  try { pops = JSON.parse(localStorage.getItem('v4_pops') || '[]'); }
+  catch(e) { pops = []; }
+}
 
 function init() {
+  loadPops();
   renderSectors();
   updateStats();
+  lucide.createIcons();
 }
 
 function renderSectors() {
   const grid = document.getElementById('sectors-grid');
+  grid.className = 'sectors-grid';
   grid.innerHTML = SECTORS.map((s, i) => {
     const count = pops.filter(p => p.sector == i).length;
     return `
@@ -761,16 +1266,16 @@ function renderSectors() {
       <div class="sector-sub">${s.sub}</div>
       <div class="sector-footer">
         <div class="pop-count"><strong>${count}</strong> POPs cadastrados</div>
-        <span class="sector-arrow">→</span>
+        <span class="sector-arrow"><i data-lucide="arrow-right"></i></span>
       </div>
     </div>`;
   }).join('');
+  lucide.createIcons();
 }
 
 function updateStats() {
   document.getElementById('total-pops').textContent = pops.length;
-  document.getElementById('critical-count').textContent = pops.filter(p => p.priority === 'alta').length;
-  document.getElementById('files-count').textContent = pops.reduce((a, p) => a + p.files.length, 0);
+  document.getElementById('sectors-used').textContent = new Set(pops.map(p => p.sector)).size;
 }
 
 function showHome() {
@@ -790,82 +1295,84 @@ function openSector(i) {
   const s = SECTORS[i];
   document.getElementById('home-view').classList.add('hidden');
   document.getElementById('process-view').classList.add('active');
-  document.getElementById('proc-icon').textContent = s.icon;
+  document.getElementById('proc-icon').innerHTML = s.icon;
   document.getElementById('proc-title').textContent = `${s.name} — ${s.sub}`;
-  document.getElementById('proc-sub').textContent = `Processos operacionais padrão do setor`;
+  document.getElementById('proc-sub').textContent = 'Processos operacionais padrão do setor';
   document.getElementById('page-title').textContent = s.name;
   document.getElementById('page-sub').textContent = s.sub;
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const navEl = document.getElementById(`nav-${i}`);
   if(navEl) navEl.classList.add('active');
-  currentFilter = 'all';
-  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-  document.querySelectorAll('.filter-chip')[0].classList.add('active');
-  renderPopList();
+  renderPopCards();
+  lucide.createIcons();
 }
 
-function renderPopList() {
-  const list = document.getElementById('pop-list');
-  let filtered = pops.filter(p => p.sector == currentSector);
-  if(currentFilter !== 'all') filtered = filtered.filter(p => p.priority === currentFilter);
-  if(!filtered.length) {
-    list.innerHTML = `<div style="text-align:center;padding:40px;color:var(--gray-text);font-size:13px;">Nenhum processo cadastrado neste setor ainda.<br><br><button class="btn-save" onclick="openModal(currentSector)" style="margin-top:8px;">＋ Adicionar primeiro POP</button></div>`;
+function renderPopCards() {
+  const container = document.getElementById('pop-list');
+  const sectorPops = pops.filter(p => p.sector == currentSector);
+
+  if (!sectorPops.length) {
+    container.className = '';
+    container.innerHTML = `<div style="text-align:center;padding:40px;color:var(--gray-text);font-size:13px;">
+      Nenhum processo cadastrado neste setor ainda.<br><br>
+      <button class="btn-save" onclick="openModal(currentSector)" style="margin-top:8px;">＋ Adicionar primeiro POP</button>
+    </div>`;
+    lucide.createIcons();
     return;
   }
-  list.innerHTML = filtered.map((p, idx) => {
-    const realIdx = pops.indexOf(p);
-    const pMap = { alta: '🔴', media: '🟡', baixa: '🟢' };
-    const tagClass = p.priority === 'alta' ? 'critical' : '';
+
+  container.className = 'pop-cards-grid';
+  container.innerHTML = sectorPops.map(p => {
+    const idx  = pops.indexOf(p);
+    const info = getLinkInfo(p.link);
+    const bg   = hexToRgba(info.color, 0.12);
+    const bdr  = hexToRgba(info.color, 0.28);
     return `
-    <div class="pop-item">
-      <div class="pop-icon">📋</div>
-      <div class="pop-info">
-        <div class="pop-title">${p.name}</div>
-        <div class="pop-meta">
-          <span>${p.owner ? '👤 ' + p.owner : '👤 Não definido'}</span>
-          <span>📎 ${p.files.length} arquivo(s)</span>
-          <span>🕐 ${p.date}</span>
+    <div class="pop-card" onclick="openLink('${esc(p.link)}')">
+      <div class="pop-card-top">
+        <div class="link-badge" style="background:${bg};border:1px solid ${bdr};color:${info.color};">
+          <i data-lucide="${info.icon}"></i>
         </div>
+        <button class="pop-card-delete" title="Remover POP"
+          onclick="event.stopPropagation();deletePop(${idx})">
+          <i data-lucide="x"></i>
+        </button>
       </div>
-      <span class="pop-tag ${tagClass}">${pMap[p.priority]} ${p.priority.charAt(0).toUpperCase()+p.priority.slice(1)}</span>
-      <div class="pop-actions">
-        <button class="pop-btn primary" onclick="viewPop(${realIdx})">Abrir</button>
-        <button class="pop-btn" onclick="deletePop(${realIdx})">✕</button>
+      <div class="pop-card-name">${esc(p.name)}</div>
+      <div class="pop-card-sector">${esc(SECTORS[p.sector].name)} · ${esc(p.date)}</div>
+      <div class="pop-card-footer">
+        <span class="pop-card-service">${esc(info.label)}</span>
+        <a class="pop-card-open" href="${esc(p.link)}" target="_blank" rel="noopener noreferrer"
+           onclick="event.stopPropagation()">
+          Abrir <i data-lucide="external-link"></i>
+        </a>
       </div>
     </div>`;
   }).join('');
+  lucide.createIcons();
 }
 
-function filterPops(f, el) {
-  currentFilter = f;
-  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
-  renderPopList();
-}
-
-function viewPop(i) {
-  const p = pops[i];
-  const s = SECTORS[p.sector];
-  const pMap = { alta: '🔴 Alta', media: '🟡 Média', baixa: '🟢 Baixa' };
-  const fileList = p.files.length ? p.files.map(f => `<div style="padding:6px 0;border-bottom:1px solid var(--gray-border);font-size:12px;display:flex;gap:10px;align-items:center;"><span>📎</span><span style="flex:1">${f.name}</span><span style="color:var(--gray-text)">${f.size}</span></div>`).join('') : '<div style="color:var(--gray-text);font-size:12px;">Nenhum arquivo anexado</div>';
-  alert(`📋 ${p.name}\n\n🏢 Setor: ${s.name} — ${s.sub}\n👤 Responsável: ${p.owner || 'Não definido'}\n⚡ Prioridade: ${pMap[p.priority]}\n🕐 Criado em: ${p.date}\n\n📝 Descrição:\n${p.desc || 'Sem descrição'}\n\n📎 Arquivos: ${p.files.length}`);
+function openLink(url) {
+  if (url) window.open(url, '_blank', 'noopener,noreferrer');
 }
 
 function deletePop(i) {
-  if(confirm('Remover este POP?')) {
+  if (confirm('Remover este POP?')) {
     pops.splice(i, 1);
-    renderPopList();
+    savePops();
+    renderPopCards();
+    renderSectors();
     updateStats();
   }
 }
 
-// MODAL
+// ── MODAL ───────────────────────────────────────────────────
 function openModal(sectorIdx) {
   document.getElementById('modal-overlay').classList.add('open');
-  if(sectorIdx !== undefined && sectorIdx !== null) {
+  if (sectorIdx !== undefined && sectorIdx !== null) {
     document.getElementById('f-sector').value = sectorIdx;
   }
-  selectPriorityByValue('media');
+  lucide.createIcons();
 }
 
 function closeModal() {
@@ -874,117 +1381,420 @@ function closeModal() {
 }
 
 function closeModalOutside(e) {
-  if(e.target === document.getElementById('modal-overlay')) closeModal();
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
 }
 
 function resetModal() {
   document.getElementById('f-name').value = '';
   document.getElementById('f-sector').value = '';
-  document.getElementById('f-owner').value = '';
-  document.getElementById('f-desc').value = '';
-  document.getElementById('file-list').innerHTML = '';
-  currentFiles = [];
-  currentPriority = 'media';
-  selectPriorityByValue('media');
+  document.getElementById('f-link').value = '';
+  updateLinkPreview('');
 }
 
-function selectPriority(val, btn) {
-  currentPriority = val;
-  document.querySelectorAll('.priority-btn').forEach(b => b.classList.remove('selected'));
-  btn.classList.add('selected');
-}
-
-function selectPriorityByValue(val) {
-  const btns = document.querySelectorAll('.priority-btn');
-  btns.forEach(b => b.classList.remove('selected'));
-  const map = { baixa: 0, media: 1, alta: 2 };
-  if(btns[map[val]]) btns[map[val]].classList.add('selected');
-  currentPriority = val;
-}
-
-function handleFiles(files) {
-  Array.from(files).forEach(f => {
-    currentFiles.push({ name: f.name, size: formatSize(f.size) });
-  });
-  renderFileList();
-}
-
-function formatSize(bytes) {
-  if(bytes < 1024) return bytes + ' B';
-  if(bytes < 1048576) return (bytes/1024).toFixed(1) + ' KB';
-  return (bytes/1048576).toFixed(1) + ' MB';
-}
-
-function renderFileList() {
-  document.getElementById('file-list').innerHTML = currentFiles.map((f, i) => `
-    <div class="file-item">
-      <span>📎</span>
-      <span class="file-name">${f.name}</span>
-      <span class="file-size">${f.size}</span>
-      <button class="file-remove" onclick="removeFile(${i})">✕</button>
-    </div>`).join('');
-}
-
-function removeFile(i) {
-  currentFiles.splice(i, 1);
-  renderFileList();
+function updateLinkPreview(url) {
+  const preview = document.getElementById('link-preview');
+  if (!url.trim()) { preview.style.display = 'none'; return; }
+  const info = getLinkInfo(url);
+  preview.style.display = 'flex';
+  preview.innerHTML = `
+    <span style="color:${info.color};flex-shrink:0;line-height:0;">
+      <i data-lucide="${info.icon}"></i>
+    </span>
+    <span>${esc(info.label)}</span>
+    <span class="link-preview-url">${esc(url)}</span>`;
+  lucide.createIcons();
 }
 
 function savePop() {
-  const name = document.getElementById('f-name').value.trim();
+  const name   = document.getElementById('f-name').value.trim();
   const sector = document.getElementById('f-sector').value;
-  if(!name) { alert('Informe o nome do processo.'); return; }
-  if(sector === '') { alert('Selecione o setor.'); return; }
-  const now = new Date();
-  const date = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
-  pops.push({
-    name,
-    sector: parseInt(sector),
-    owner: document.getElementById('f-owner').value.trim(),
-    desc: document.getElementById('f-desc').value.trim(),
-    priority: currentPriority,
-    files: [...currentFiles],
-    date,
-  });
+  const link   = document.getElementById('f-link').value.trim();
+  if (!name)   { alert('Informe o nome do processo.'); return; }
+  if (!sector) { alert('Selecione o setor.'); return; }
+  if (!link)   { alert('Informe o link do arquivo.'); return; }
+  const date = new Date().toLocaleDateString('pt-BR');
+  pops.push({ name, sector: parseInt(sector), link, date });
+  savePops();
   closeModal();
   updateStats();
   renderSectors();
-  if(currentSector !== null && currentSector == parseInt(sector)) renderPopList();
-  showToast('✓ POP salvo com sucesso!');
+  if (currentSector !== null && currentSector == parseInt(sector)) renderPopCards();
+  showToast('<i data-lucide="check"></i> POP salvo com sucesso!');
 }
 
 function showToast(msg) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
+  t.innerHTML = msg;
+  lucide.createIcons();
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
+// ── BUSCA ────────────────────────────────────────────────────
 function handleSearch() {
-  const q = document.getElementById('search-input').value.toLowerCase();
-  if(!q) { renderSectors(); return; }
+  const q    = document.getElementById('search-input').value.toLowerCase().trim();
   const grid = document.getElementById('sectors-grid');
+  if (!q) { renderSectors(); return; }
+
   const results = pops.filter(p => p.name.toLowerCase().includes(q));
-  if(!results.length) {
-    grid.innerHTML = `<div style="color:var(--gray-text);font-size:13px;padding:20px;">Nenhum POP encontrado para "${q}"</div>`;
+  if (!results.length) {
+    grid.className = '';
+    grid.innerHTML = `<div style="color:var(--gray-text);font-size:13px;padding:20px;">
+      Nenhum POP encontrado para "<strong>${esc(q)}</strong>"
+    </div>`;
     return;
   }
+
+  grid.className = 'pop-cards-grid';
   grid.innerHTML = results.map(p => {
-    const s = SECTORS[p.sector];
-    const realIdx = pops.indexOf(p);
+    const info = getLinkInfo(p.link);
+    const bg   = hexToRgba(info.color, 0.12);
+    const bdr  = hexToRgba(info.color, 0.28);
     return `
-    <div class="pop-item" style="background:var(--gray-dark);border:1px solid var(--gray-border);border-radius:10px;padding:16px 20px;display:flex;align-items:center;gap:16px;">
-      <div class="pop-icon">📋</div>
-      <div class="pop-info" style="flex:1">
-        <div class="pop-title" style="font-weight:500;font-size:14px;color:var(--white-pure)">${p.name}</div>
-        <div class="pop-meta" style="font-size:11px;color:var(--gray-text)">${s.icon} ${s.name} — ${s.sub}</div>
+    <div class="pop-card" onclick="openLink('${esc(p.link)}')">
+      <div class="pop-card-top">
+        <div class="link-badge" style="background:${bg};border:1px solid ${bdr};color:${info.color};">
+          <i data-lucide="${info.icon}"></i>
+        </div>
       </div>
-      <button class="pop-btn primary" onclick="openSector(${p.sector})">Ver setor</button>
+      <div class="pop-card-name">${esc(p.name)}</div>
+      <div class="pop-card-sector">${esc(SECTORS[p.sector].name)}</div>
+      <div class="pop-card-footer">
+        <span class="pop-card-service">${esc(info.label)}</span>
+        <a class="pop-card-open" href="${esc(p.link)}" target="_blank" rel="noopener noreferrer"
+           onclick="event.stopPropagation()">
+          Abrir <i data-lucide="external-link"></i>
+        </a>
+      </div>
     </div>`;
   }).join('');
+  lucide.createIcons();
 }
 
 init();
+
+/* ══════════════════════════════════════════════════════════
+   CHAT — Assistente de POPs  (Gemini 1.5 Flash)
+══════════════════════════════════════════════════════════ */
+(function () {
+
+  // ── Chaves de storage ───────────────────────────────────
+  const KEY_NAME    = 'v4_chat_username';
+  const KEY_HISTORY = 'v4_chat_history';
+  const KEY_APIKEY  = 'v4_gemini_key';
+
+  // ── Estado ──────────────────────────────────────────────
+  let chatOpen       = false;
+  let chatUserName   = localStorage.getItem(KEY_NAME) || '';
+  let chatMessages   = [];          // { role, text, time }
+  let chatWaiting    = false;
+  let showingConfig  = false;
+
+  // ── System prompt ───────────────────────────────────────
+  const SYSTEM_PROMPT = `Você é o Assistente de POPs da V4 Company, especialista em Procedimentos Operacionais Padrão (POPs).
+
+Seu papel:
+- Responder dúvidas sobre POPs: o que são, como funcionam, boas práticas de criação e execução
+- Orientar colaboradores sobre processos operacionais dos setores: Comercial, Monetização, Operação PE&G, Adm. Financeiro, Adm. P&P, Customer Success e Tech & IA
+- Ajudar a entender como documentar e padronizar processos
+- Ser claro, objetivo e didático nas respostas
+- Usar linguagem profissional mas acessível
+- Quando não souber responder com certeza, dizer: "Não tenho essa informação no momento. Sua dúvida foi registrada para análise da equipe."
+
+Responda sempre em português do Brasil. Seja conciso (máx. 4 parágrafos curtos).`;
+
+  // ── Helpers de storage ──────────────────────────────────
+  function loadHistory() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(KEY_HISTORY) || '{}');
+      chatMessages = saved[chatUserName] || [];
+    } catch(e) { chatMessages = []; }
+  }
+
+  function saveHistory() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(KEY_HISTORY) || '{}');
+      saved[chatUserName] = chatMessages.slice(-80); // guarda até 80 msgs
+      localStorage.setItem(KEY_HISTORY, JSON.stringify(saved));
+    } catch(e) {}
+  }
+
+  // ── Abrir / fechar ──────────────────────────────────────
+  window.chatToggle = function () {
+    chatOpen = !chatOpen;
+    document.getElementById('chat-window').classList.toggle('open', chatOpen);
+    if (chatOpen) {
+      chatRender();
+      setTimeout(() => {
+        const ta = document.getElementById('chat-textarea');
+        if (ta) ta.focus();
+      }, 250);
+    }
+  };
+
+  // ── Render principal ────────────────────────────────────
+  function chatRender() {
+    const apiKey = localStorage.getItem(KEY_APIKEY) || '';
+
+    if (!apiKey) { chatShowApiSetup(); return; }
+    if (!chatUserName) { chatShowNamePrompt(); return; }
+
+    loadHistory();
+    chatShowMessages();
+    updateSubtitle();
+    lucide.createIcons();
+  }
+
+  function updateSubtitle() {
+    const el = document.getElementById('chat-subtitle');
+    if (el && chatUserName) el.textContent = `Olá, ${chatUserName}`;
+  }
+
+  // ── Tela: configurar API Key ─────────────────────────────
+  function chatShowApiSetup(fromConfig) {
+    showingConfig = true;
+    document.getElementById('chat-input-bar').style.display = 'none';
+    const body = document.getElementById('chat-body');
+    body.innerHTML = `
+      <div class="chat-screen">
+        <div class="cs-icon"><i data-lucide="key"></i></div>
+        <h4>Configure a API Key</h4>
+        <p>Para usar o Assistente de POPs, insira sua chave da API do Google Gemini.</p>
+        <input class="cs-input" id="cs-key-input" type="password"
+          placeholder="AIzaSy..." autocomplete="off"
+          value="${localStorage.getItem(KEY_APIKEY) || ''}" />
+        <button class="cs-btn" onclick="chatSaveApiKey()">Salvar e continuar</button>
+        <p class="cs-note">
+          Obtenha sua chave em <code>aistudio.google.com</code> → "Get API Key".<br>
+          A chave é salva apenas no seu navegador (localStorage).
+        </p>
+        ${fromConfig && chatUserName ? `<button class="cs-link" onclick="chatCancelConfig()">← Voltar ao chat</button>` : ''}
+      </div>`;
+    lucide.createIcons();
+  }
+
+  window.chatOpenConfig = function () { chatShowApiSetup(true); };
+
+  window.chatCancelConfig = function () {
+    showingConfig = false;
+    chatShowMessages();
+  };
+
+  window.chatSaveApiKey = function () {
+    const val = (document.getElementById('cs-key-input')?.value || '').trim();
+    if (!val) { alert('Cole uma chave válida.'); return; }
+    localStorage.setItem(KEY_APIKEY, val);
+    showingConfig = false;
+    chatRender();
+  };
+
+  // ── Tela: pedir nome ────────────────────────────────────
+  function chatShowNamePrompt() {
+    document.getElementById('chat-input-bar').style.display = 'none';
+    const body = document.getElementById('chat-body');
+    body.innerHTML = `
+      <div class="chat-screen">
+        <div class="cs-icon"><i data-lucide="user-circle"></i></div>
+        <h4>Olá! Como posso te chamar?</h4>
+        <p>Informe seu nome para personalizar o atendimento.</p>
+        <input class="cs-input" id="cs-name-input" type="text"
+          placeholder="Seu nome..." maxlength="40"
+          onkeydown="if(event.key==='Enter')chatSaveName()" />
+        <button class="cs-btn" onclick="chatSaveName()">Começar</button>
+      </div>`;
+    lucide.createIcons();
+    setTimeout(() => document.getElementById('cs-name-input')?.focus(), 100);
+  }
+
+  window.chatSaveName = function () {
+    const val = (document.getElementById('cs-name-input')?.value || '').trim();
+    if (!val) { alert('Informe seu nome.'); return; }
+    chatUserName = val;
+    localStorage.setItem(KEY_NAME, val);
+    loadHistory();
+    chatShowMessages();
+    updateSubtitle();
+    lucide.createIcons();
+  };
+
+  // ── Tela: mensagens ─────────────────────────────────────
+  function chatShowMessages() {
+    document.getElementById('chat-input-bar').style.display = 'flex';
+    const body = document.getElementById('chat-body');
+
+    if (!chatMessages.length) {
+      body.innerHTML = `
+        <div class="chat-empty">
+          <i data-lucide="message-square"></i>
+          <span>Nenhuma mensagem ainda.<br>Faça uma pergunta sobre os POPs!</span>
+        </div>`;
+      lucide.createIcons();
+      return;
+    }
+
+    body.innerHTML = `<div class="chat-messages" id="chat-msgs-list"></div>`;
+    const list = document.getElementById('chat-msgs-list');
+    chatMessages.forEach(m => list.appendChild(buildBubble(m)));
+    list.scrollTop = list.scrollHeight;
+  }
+
+  function buildBubble(m) {
+    const wrap = document.createElement('div');
+    wrap.className = `chat-msg ${m.role}`;
+    const sender = m.role === 'user' ? chatUserName : 'Assistente';
+    wrap.innerHTML = `
+      <span class="msg-sender">${sender}</span>
+      <div class="msg-bubble">${linkify(esc(m.text))}</div>
+      <span class="msg-time">${m.time}</span>`;
+    return wrap;
+  }
+
+  function linkify(text) {
+    return text.replace(/(https?:\/\/[^\s<>"]+)/g,
+      '<a href="$1" target="_blank" rel="noopener" style="color:var(--red);word-break:break-all;">$1</a>');
+  }
+
+  function esc(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function appendBubble(m) {
+    let list = document.getElementById('chat-msgs-list');
+    if (!list) {
+      document.getElementById('chat-body').innerHTML =
+        `<div class="chat-messages" id="chat-msgs-list"></div>`;
+      list = document.getElementById('chat-msgs-list');
+    }
+    const el = buildBubble(m);
+    list.appendChild(el);
+    list.scrollTop = list.scrollHeight;
+  }
+
+  // ── Input / resize ──────────────────────────────────────
+  window.chatInputResize = function (ta) {
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 100) + 'px';
+  };
+
+  window.chatKeyDown = function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      chatSend();
+    }
+  };
+
+  // ── Enviar mensagem ─────────────────────────────────────
+  window.chatSend = async function () {
+    if (chatWaiting) return;
+    const ta  = document.getElementById('chat-textarea');
+    const btn = document.getElementById('chat-send-btn');
+    const text = ta.value.trim();
+    if (!text) return;
+
+    ta.value = '';
+    ta.style.height = 'auto';
+    chatWaiting = true;
+    btn.disabled = true;
+
+    const time = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+    const userMsg = { role: 'user', text, time };
+    chatMessages.push(userMsg);
+    saveHistory();
+    appendBubble(userMsg);
+
+    // Typing indicator
+    const typingId = 'typing-' + Date.now();
+    let list = document.getElementById('chat-msgs-list');
+    const typingEl = document.createElement('div');
+    typingEl.id = typingId;
+    typingEl.className = 'typing-bubble';
+    typingEl.innerHTML = '<span></span><span></span><span></span>';
+    list.appendChild(typingEl);
+    list.scrollTop = list.scrollHeight;
+
+    try {
+      const reply = await callGemini(text);
+      typingEl.remove();
+      const aiMsg = { role: 'ai', text: reply, time };
+      chatMessages.push(aiMsg);
+      saveHistory();
+      appendBubble(aiMsg);
+    } catch(err) {
+      typingEl.remove();
+      const errMsg = {
+        role: 'ai',
+        text: `Não consegui obter uma resposta no momento. Tente novamente em alguns instantes.\n\n_Erro: ${err.message}_`,
+        time,
+      };
+      appendBubble(errMsg);
+    }
+
+    chatWaiting = false;
+    btn.disabled = false;
+    ta.focus();
+  };
+
+  // ── Chamada Gemini API ───────────────────────────────────
+  async function callGemini(userText) {
+    const apiKey = localStorage.getItem(KEY_APIKEY) || '';
+    if (!apiKey) throw new Error('API Key não configurada.');
+
+    // Monta contexto: system prompt + últimas 10 mensagens + nova pergunta
+    const history = chatMessages.slice(-11, -1); // exclui a msg recém-adicionada
+    const contents = [];
+
+    // Gemini não tem "system" role — injetamos no primeiro user turn
+    const systemTurn = SYSTEM_PROMPT + '\n\n---\nPOPs cadastrados no sistema: '
+      + (pops.length
+          ? pops.map(p => `"${p.name}" (${SECTORS[p.sector]?.name || 'Setor'})`).join(', ')
+          : 'nenhum cadastrado ainda.');
+
+    contents.push({ role: 'user', parts: [{ text: systemTurn }] });
+    contents.push({ role: 'model', parts: [{ text: 'Entendido! Estou pronto para ajudar com os POPs da V4 Company.' }] });
+
+    history.forEach(m => {
+      contents.push({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: m.text }],
+      });
+    });
+
+    contents.push({ role: 'user', parts: [{ text: userText }] });
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents,
+        generationConfig: { temperature: 0.7, maxOutputTokens: 600 },
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const msg = err?.error?.message || `HTTP ${res.status}`;
+      // Chave inválida: mostrar configuração
+      if (res.status === 400 || res.status === 403) {
+        setTimeout(() => chatShowApiSetup(true), 400);
+      }
+      throw new Error(msg);
+    }
+
+    const data = await res.json();
+    return data?.candidates?.[0]?.content?.parts?.[0]?.text
+      || 'Não consegui gerar uma resposta. Por favor, tente novamente.';
+  }
+
+  // ── Limpar histórico ─────────────────────────────────────
+  window.chatClearHistory = function () {
+    if (!confirm('Apagar todo o histórico desta conversa?')) return;
+    chatMessages = [];
+    saveHistory();
+    chatShowMessages();
+  };
+
+})(); // fim IIFE do chat
 </script>
 </body>
 </html>
