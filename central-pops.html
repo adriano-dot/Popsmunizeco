@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Central de POPs — V4 Company</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #E8001D;
+    --red-dark: #b5001a;
+    --black: #0a0a0a;
+    --gray-dark: #141414;
+    --gray-mid: #1e1e1e;
+    --gray-border: #2a2a2a;
+    --gray-text: #888;
+    --white: #f5f5f5;
+    --white-pure: #ffffff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    width: 220px;
+    background: var(--gray-dark);
+    border-right: 1px solid var(--gray-border);
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    padding: 0 0 24px;
+  }
+
+  .sidebar-logo {
+    padding: 28px 24px 24px;
+    border-bottom: 1px solid var(--gray-border);
+  }
+  .sidebar-logo .brand {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    color: var(--white-pure);
+    letter-spacing: -0.5px;
+  }
+  .sidebar-logo .brand span { color: var(--red); }
+  .sidebar-logo .sub {
+    font-size: 10px;
+    color: var(--gray-text);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .sidebar-nav {
+    padding: 16px 0;
+    flex: 1;
+    overflow-y: auto;
+  }
+  .nav-label {
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--gray-text);
+    padding: 8px 24px 6px;
+    margin-top: 8px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 24px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #aaa;
+    transition: all 0.2s;
+    border-left: 2px solid transparent;
+    font-weight: 400;
+  }
+  .nav-item:hover { color: var(--white); background: rgba(255,255,255,0.04); }
+  .nav-item.active { color: var(--white-pure); border-left-color: var(--red); background: rgba(232,0,29,0.07); font-weight: 500; }
+  .nav-item .icon { font-size: 14px; width: 18px; text-align: center; }
+
+  .sidebar-footer {
+    padding: 16px 24px 0;
+    border-top: 1px solid var(--gray-border);
+  }
+  .btn-add-pop {
+    width: 100%;
+    background: var(--red);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 11px 14px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn-add-pop:hover { background: var(--red-dark); }
+
+  /* ── MAIN ── */
+  .main {
+    margin-left: 220px;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  .topbar {
+    padding: 24px 40px 20px;
+    border-bottom: 1px solid var(--gray-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: var(--black);
+    z-index: 50;
+  }
+  .topbar-left h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .topbar-left p { font-size: 12px; color: var(--gray-text); margin-top: 2px; }
+
+  .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--gray-mid);
+    border: 1px solid var(--gray-border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    width: 280px;
+  }
+  .search-bar input {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    width: 100%;
+  }
+  .search-bar input::placeholder { color: var(--gray-text); }
+  .search-bar .s-icon { color: var(--gray-text); font-size: 14px; }
+
+  /* ── CONTENT ── */
+  .content { padding: 36px 40px; }
+
+  /* ── OVERVIEW CARDS ── */
+  .overview-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+  .stat-card {
+    background: var(--gray-dark);
+    border: 1px solid var(--gray-border);
+    border-radius: 10px;
+    padding: 20px 22px;
+  }
+  .stat-card .stat-label { font-size: 11px; color: var(--gray-text); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+  .stat-card .stat-value { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; color: var(--white-pure); }
+  .stat-card .stat-sub { font-size: 11px; color: var(--gray-text); margin-top: 4px; }
+  .stat-card.accent { border-color: var(--red); }
+  .stat-card.accent .stat-value { color: var(--red); }
+
+  /* ── SECTOR GRID ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+  .section-count { font-size: 12px; color: var(--gray-text); }
+
+  .sectors-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .sector-card {
+    background: var(--gray-dark);
+    border: 1px solid var(--gray-border);
+    border-radius: 12px;
+    padding: 22px;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+  .sector-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--red);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .sector-card:hover { border-color: #3a3a3a; transform: translateY(-2px); box-shadow: 0 12px 32px rgba(0,0,0,0.4); }
+  .sector-card:hover::before { opacity: 1; }
+
+  .sector-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .sector-icon {
+    width: 40px; height: 40px;
+    border-radius: 8px;
+    background: rgba(232,0,29,0.1);
+    border: 1px solid rgba(232,0,29,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+  .sector-badge {
+    font-size: 10px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--gray-border);
+    border-radius: 20px;
+    padding: 3px 10px;
+    color: var(--gray-text);
+    letter-spacing: 0.5px;
+  }
+
+  .sector-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 3px;
+    color: var(--white-pure);
+  }
+  .sector-sub { font-size: 12px; color: var(--gray-text); margin-bottom: 16px; }
+
+  .sector-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 14px;
+    border-top: 1px solid var(--gray-border);
+  }
+  .pop-count { font-size: 12px; color: #bbb; }
+  .pop-count strong { color: var(--white-pure); font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; }
+  .sector-arrow { color: var(--gray-text); font-size: 16px; transition: transform 0.2s; }
+  .sector-card:hover .sector-arrow { transform: translateX(4px); color: var(--red); }
+
+  /* ── PROCESS LIST VIEW ── */
+  .process-view { display: none; }
+  .process-view.active { display: block; }
+
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--gray-text);
+    cursor: pointer;
+    margin-bottom: 24px;
+    transition: color 0.2s;
+    background: none;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .back-btn:hover { color: var(--white); }
+
+  .process-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--gray-border);
+  }
+  .process-header .ph-icon {
+    width: 52px; height: 52px;
+    border-radius: 12px;
+    background: rgba(232,0,29,0.1);
+    border: 1px solid rgba(232,0,29,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+  }
+  .process-header h2 { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; }
+  .process-header p { font-size: 13px; color: var(--gray-text); margin-top: 2px; }
+
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .filter-chip {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--gray-border);
+    background: transparent;
+    color: var(--gray-text);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .filter-chip:hover { border-color: #aaa; color: var(--white); }
+  .filter-chip.active { background: var(--red); border-color: var(--red); color: white; }
+
+  .pop-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .pop-item {
+    background: var(--gray-dark);
+    border: 1px solid var(--gray-border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .pop-item:hover { border-color: #3a3a3a; background: var(--gray-mid); }
+  .pop-item .pop-icon { font-size: 20px; width: 36px; text-align: center; }
+  .pop-item .pop-info { flex: 1; }
+  .pop-item .pop-title { font-weight: 500; font-size: 14px; color: var(--white-pure); margin-bottom: 3px; }
+  .pop-item .pop-meta { font-size: 11px; color: var(--gray-text); display: flex; gap: 14px; }
+  .pop-item .pop-tag {
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--gray-border);
+    color: var(--gray-text);
+    white-space: nowrap;
+  }
+  .pop-item .pop-tag.critical { border-color: rgba(232,0,29,0.3); color: var(--red); background: rgba(232,0,29,0.06); }
+  .pop-actions { display: flex; gap: 8px; }
+  .pop-btn {
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--gray-border);
+    background: transparent;
+    color: var(--gray-text);
+    font-size:11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .pop-btn:hover { color: var(--white); border-color: #aaa; }
+  .pop-btn.primary { background: var(--red); border-color: var(--red); color: white; }
+  .pop-btn.primary:hover { background: var(--red-dark); }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(4px);
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: var(--gray-dark);
+    border: 1px solid var(--gray-border);
+    border-radius: 16px;
+    width: 580px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    transform: translateY(20px);
+    transition: transform 0.25s;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  .modal-header {
+    padding: 24px 28px 20px;
+    border-bottom: 1px solid var(--gray-border);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+  .modal-header h3 { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; }
+  .modal-header p { font-size: 12px; color: var(--gray-text); margin-top: 2px; }
+  .modal-close {
+    background: none; border: none; color: var(--gray-text);
+    cursor: pointer; font-size: 20px; line-height: 1;
+    transition: color 0.2s;
+  }
+  .modal-close:hover { color: var(--white); }
+
+  .modal-body { padding: 24px 28px; display: flex; flex-direction: column; gap: 18px; }
+
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-label { font-size: 11px; color: var(--gray-text); text-transform: uppercase; letter-spacing: 1px; font-weight: 500; }
+  .form-input, .form-select, .form-textarea {
+    background: var(--gray-mid);
+    border: 1px solid var(--gray-border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--red); }
+  .form-select option { background: var(--gray-dark); }
+  .form-textarea { resize: vertical; min-height: 90px; }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  .upload-zone {
+    border: 2px dashed var(--gray-border);
+    border-radius: 10px;
+    padding: 28px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    width: 100%;
+  }
+  .upload-zone:hover { border-color: var(--red); background: rgba(232,0,29,0.03); }
+  .upload-zone .upload-icon { font-size: 28px; margin-bottom: 8px; }
+  .upload-zone .upload-title { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+  .upload-zone .upload-sub { font-size: 11px; color: var(--gray-text); }
+  .upload-zone input { display: none; }
+
+  .file-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--gray-mid);
+    border: 1px solid var(--gray-border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  .file-item .file-name { flex: 1; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-item .file-size { color: var(--gray-text); }
+  .file-remove { background: none; border: none; color: var(--gray-text); cursor: pointer; font-size: 14px; transition: color 0.2s; }
+  .file-remove:hover { color: var(--red); }
+
+  .priority-grid { display: flex; gap: 8px; }
+  .priority-btn {
+    flex: 1;
+    padding: 8px 6px;
+    border-radius: 6px;
+    border: 1px solid var(--gray-border);
+    background: transparent;
+    color: var(--gray-text);
+    font-size: 11px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .priority-btn:hover { border-color: #aaa; color: var(--white); }
+  .priority-btn.selected.low { border-color: #22c55e; color: #22c55e; background: rgba(34,197,94,0.07); }
+  .priority-btn.selected.medium { border-color: #f59e0b; color: #f59e0b; background: rgba(245,158,11,0.07); }
+  .priority-btn.selected.high { border-color: var(--red); color: var(--red); background: rgba(232,0,29,0.07); }
+
+  .modal-footer {
+    padding: 18px 28px 24px;
+    border-top: 1px solid var(--gray-border);
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+  .btn-cancel {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--gray-border);
+    background: transparent;
+    color: var(--gray-text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-cancel:hover { color: var(--white); border-color: #aaa; }
+  .btn-save {
+    padding: 10px 24px;
+    border-radius: 8px;
+    border: none;
+    background: var(--red);
+    color: white;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-save:hover { background: var(--red-dark); }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: var(--gray-dark);
+    border: 1px solid #22c55e;
+    color: #22c55e;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 999;
+    transform: translateY(60px);
+    opacity: 0;
+    transition: all 0.3s;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ── HOME VIEW ── */
+  .home-view.hidden { display: none; }
+  .process-view { display: none; }
+  .process-view.active { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--gray-border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">V4<span>.</span>Company</div>
+    <div class="sub">Central de POPs</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Navegação</div>
+    <div class="nav-item active" onclick="showHome()" id="nav-home">
+      <span class="icon">⊞</span> Visão Geral
+    </div>
+    <div class="nav-label">Setores</div>
+    <div class="nav-item" onclick="openSector(0)" id="nav-0"><span class="icon">📣</span> Comercial</div>
+    <div class="nav-item" onclick="openSector(1)" id="nav-1"><span class="icon">📈</span> Monetização</div>
+    <div class="nav-item" onclick="openSector(2)" id="nav-2"><span class="icon">⚙️</span> Operação PE&G</div>
+    <div class="nav-item" onclick="openSector(3)" id="nav-3"><span class="icon">💰</span> Adm. Financeiro</div>
+    <div class="nav-item" onclick="openSector(4)" id="nav-4"><span class="icon">👥</span> Adm. P&P</div>
+    <div class="nav-item" onclick="openSector(5)" id="nav-5"><span class="icon">🌟</span> Customer Success</div>
+    <div class="nav-item" onclick="openSector(6)" id="nav-6"><span class="icon">🤖</span> Tech & IA</div>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="btn-add-pop" onclick="openModal()">＋ Novo POP</button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <h1 id="page-title">Central de POPs</h1>
+      <p id="page-sub">Todos os processos operacionais padrão da empresa</p>
+    </div>
+    <div class="search-bar">
+      <span class="s-icon">🔍</span>
+      <input type="text" placeholder="Buscar processo..." id="search-input" oninput="handleSearch()" />
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- HOME VIEW -->
+    <div class="home-view" id="home-view">
+      <div class="overview-grid">
+        <div class="stat-card accent">
+          <div class="stat-label">Total de POPs</div>
+          <div class="stat-value" id="total-pops">0</div>
+          <div class="stat-sub">Processos cadastrados</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Setores ativos</div>
+          <div class="stat-value">7</div>
+          <div class="stat-sub">Áreas da empresa</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Críticos</div>
+          <div class="stat-value" id="critical-count">0</div>
+          <div class="stat-sub">Prioridade alta</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Materiais</div>
+          <div class="stat-value" id="files-count">0</div>
+          <div class="stat-sub">Arquivos anexados</div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">Setores</div>
+        <div class="section-count" id="sector-count">7 áreas</div>
+      </div>
+
+      <div class="sectors-grid" id="sectors-grid"></div>
+    </div>
+
+    <!-- PROCESS VIEW -->
+    <div class="process-view" id="process-view">
+      <button class="back-btn" onclick="showHome()">← Voltar para Visão Geral</button>
+      <div class="process-header">
+        <div class="ph-icon" id="proc-icon"></div>
+        <div>
+          <h2 id="proc-title"></h2>
+          <p id="proc-sub"></p>
+        </div>
+      </div>
+      <div class="filter-bar" id="filter-bar">
+        <button class="filter-chip active" onclick="filterPops('all', this)">Todos</button>
+        <button class="filter-chip" onclick="filterPops('alta', this)">🔴 Alta prioridade</button>
+        <button class="filter-chip" onclick="filterPops('media', this)">🟡 Média prioridade</button>
+        <button class="filter-chip" onclick="filterPops('baixa', this)">🟢 Baixa prioridade</button>
+      </div>
+      <div class="pop-list" id="pop-list"></div>
+      <div style="margin-top:20px;">
+        <button class="btn-save" onclick="openModal(currentSector)">＋ Adicionar POP neste Setor</button>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h3>Novo Processo (POP)</h3>
+        <p>Preencha as informações e suba os materiais</p>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Nome do Processo *</label>
+        <input class="form-input" id="f-name" type="text" placeholder="ex: Processo de Onboarding de Clientes" />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Setor *</label>
+          <select class="form-select" id="f-sector">
+            <option value="">Selecione o setor...</option>
+            <option value="0">Comercial — Aquisição</option>
+            <option value="1">Monetização — Expansão</option>
+            <option value="2">Operação — PE&G</option>
+            <option value="3">Adm. Financeiro</option>
+            <option value="4">Adm. P&P</option>
+            <option value="5">Customer Success</option>
+            <option value="6">Tech & IA</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Responsável</label>
+          <input class="form-input" id="f-owner" type="text" placeholder="Nome ou cargo" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descrição</label>
+        <textarea class="form-textarea" id="f-desc" placeholder="Objetivo e escopo do processo..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Prioridade</label>
+        <div class="priority-grid">
+          <button class="priority-btn low" onclick="selectPriority('baixa', this)">🟢 Baixa</button>
+          <button class="priority-btn medium selected medium" onclick="selectPriority('media', this)">🟡 Média</button>
+          <button class="priority-btn high" onclick="selectPriority('alta', this)">🔴 Alta</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Materiais do Processo</label>
+        <label class="upload-zone" for="file-upload">
+          <div class="upload-icon">📂</div>
+          <div class="upload-title">Clique para anexar arquivos</div>
+          <div class="upload-sub">PDF, DOCX, XLSX, MP4, PNG — qualquer formato</div>
+          <input type="file" id="file-upload" multiple onchange="handleFiles(this.files)" />
+        </label>
+        <div class="file-list" id="file-list"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-save" onclick="savePop()">Salvar POP</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">✓ POP salvo com sucesso!</div>
+
+<script>
+const SECTORS = [
+  { name: "Comercial", sub: "Aquisição", icon: "📣", badge: "Receita" },
+  { name: "Monetização", sub: "Expansão", icon: "📈", badge: "Crescimento" },
+  { name: "Operação", sub: "PE&G", icon: "⚙️", badge: "Processos" },
+  { name: "Adm. Financeiro", sub: "Administrativo", icon: "💰", badge: "Finanças" },
+  { name: "Adm. P&P", sub: "Pessoas & Performance", icon: "👥", badge: "RH" },
+  { name: "Customer Success", sub: "Retenção & Satisfação", icon: "🌟", badge: "Clientes" },
+  { name: "Tech & IA", sub: "Tecnologia & Automação", icon: "🤖", badge: "Tech" },
+];
+
+let pops = [];
+let currentSector = null;
+let currentPriority = 'media';
+let currentFiles = [];
+let currentFilter = 'all';
+
+function init() {
+  renderSectors();
+  updateStats();
+}
+
+function renderSectors() {
+  const grid = document.getElementById('sectors-grid');
+  grid.innerHTML = SECTORS.map((s, i) => {
+    const count = pops.filter(p => p.sector == i).length;
+    return `
+    <div class="sector-card" onclick="openSector(${i})">
+      <div class="sector-top">
+        <div class="sector-icon">${s.icon}</div>
+        <span class="sector-badge">${s.badge}</span>
+      </div>
+      <div class="sector-name">${s.name}</div>
+      <div class="sector-sub">${s.sub}</div>
+      <div class="sector-footer">
+        <div class="pop-count"><strong>${count}</strong> POPs cadastrados</div>
+        <span class="sector-arrow">→</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateStats() {
+  document.getElementById('total-pops').textContent = pops.length;
+  document.getElementById('critical-count').textContent = pops.filter(p => p.priority === 'alta').length;
+  document.getElementById('files-count').textContent = pops.reduce((a, p) => a + p.files.length, 0);
+}
+
+function showHome() {
+  document.getElementById('home-view').classList.remove('hidden');
+  document.getElementById('process-view').classList.remove('active');
+  document.getElementById('page-title').textContent = 'Central de POPs';
+  document.getElementById('page-sub').textContent = 'Todos os processos operacionais padrão da empresa';
+  currentSector = null;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('nav-home').classList.add('active');
+  renderSectors();
+  updateStats();
+}
+
+function openSector(i) {
+  currentSector = i;
+  const s = SECTORS[i];
+  document.getElementById('home-view').classList.add('hidden');
+  document.getElementById('process-view').classList.add('active');
+  document.getElementById('proc-icon').textContent = s.icon;
+  document.getElementById('proc-title').textContent = `${s.name} — ${s.sub}`;
+  document.getElementById('proc-sub').textContent = `Processos operacionais padrão do setor`;
+  document.getElementById('page-title').textContent = s.name;
+  document.getElementById('page-sub').textContent = s.sub;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const navEl = document.getElementById(`nav-${i}`);
+  if(navEl) navEl.classList.add('active');
+  currentFilter = 'all';
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.filter-chip')[0].classList.add('active');
+  renderPopList();
+}
+
+function renderPopList() {
+  const list = document.getElementById('pop-list');
+  let filtered = pops.filter(p => p.sector == currentSector);
+  if(currentFilter !== 'all') filtered = filtered.filter(p => p.priority === currentFilter);
+  if(!filtered.length) {
+    list.innerHTML = `<div style="text-align:center;padding:40px;color:var(--gray-text);font-size:13px;">Nenhum processo cadastrado neste setor ainda.<br><br><button class="btn-save" onclick="openModal(currentSector)" style="margin-top:8px;">＋ Adicionar primeiro POP</button></div>`;
+    return;
+  }
+  list.innerHTML = filtered.map((p, idx) => {
+    const realIdx = pops.indexOf(p);
+    const pMap = { alta: '🔴', media: '🟡', baixa: '🟢' };
+    const tagClass = p.priority === 'alta' ? 'critical' : '';
+    return `
+    <div class="pop-item">
+      <div class="pop-icon">📋</div>
+      <div class="pop-info">
+        <div class="pop-title">${p.name}</div>
+        <div class="pop-meta">
+          <span>${p.owner ? '👤 ' + p.owner : '👤 Não definido'}</span>
+          <span>📎 ${p.files.length} arquivo(s)</span>
+          <span>🕐 ${p.date}</span>
+        </div>
+      </div>
+      <span class="pop-tag ${tagClass}">${pMap[p.priority]} ${p.priority.charAt(0).toUpperCase()+p.priority.slice(1)}</span>
+      <div class="pop-actions">
+        <button class="pop-btn primary" onclick="viewPop(${realIdx})">Abrir</button>
+        <button class="pop-btn" onclick="deletePop(${realIdx})">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterPops(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderPopList();
+}
+
+function viewPop(i) {
+  const p = pops[i];
+  const s = SECTORS[p.sector];
+  const pMap = { alta: '🔴 Alta', media: '🟡 Média', baixa: '🟢 Baixa' };
+  const fileList = p.files.length ? p.files.map(f => `<div style="padding:6px 0;border-bottom:1px solid var(--gray-border);font-size:12px;display:flex;gap:10px;align-items:center;"><span>📎</span><span style="flex:1">${f.name}</span><span style="color:var(--gray-text)">${f.size}</span></div>`).join('') : '<div style="color:var(--gray-text);font-size:12px;">Nenhum arquivo anexado</div>';
+  alert(`📋 ${p.name}\n\n🏢 Setor: ${s.name} — ${s.sub}\n👤 Responsável: ${p.owner || 'Não definido'}\n⚡ Prioridade: ${pMap[p.priority]}\n🕐 Criado em: ${p.date}\n\n📝 Descrição:\n${p.desc || 'Sem descrição'}\n\n📎 Arquivos: ${p.files.length}`);
+}
+
+function deletePop(i) {
+  if(confirm('Remover este POP?')) {
+    pops.splice(i, 1);
+    renderPopList();
+    updateStats();
+  }
+}
+
+// MODAL
+function openModal(sectorIdx) {
+  document.getElementById('modal-overlay').classList.add('open');
+  if(sectorIdx !== undefined && sectorIdx !== null) {
+    document.getElementById('f-sector').value = sectorIdx;
+  }
+  selectPriorityByValue('media');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  resetModal();
+}
+
+function closeModalOutside(e) {
+  if(e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+function resetModal() {
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-sector').value = '';
+  document.getElementById('f-owner').value = '';
+  document.getElementById('f-desc').value = '';
+  document.getElementById('file-list').innerHTML = '';
+  currentFiles = [];
+  currentPriority = 'media';
+  selectPriorityByValue('media');
+}
+
+function selectPriority(val, btn) {
+  currentPriority = val;
+  document.querySelectorAll('.priority-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+function selectPriorityByValue(val) {
+  const btns = document.querySelectorAll('.priority-btn');
+  btns.forEach(b => b.classList.remove('selected'));
+  const map = { baixa: 0, media: 1, alta: 2 };
+  if(btns[map[val]]) btns[map[val]].classList.add('selected');
+  currentPriority = val;
+}
+
+function handleFiles(files) {
+  Array.from(files).forEach(f => {
+    currentFiles.push({ name: f.name, size: formatSize(f.size) });
+  });
+  renderFileList();
+}
+
+function formatSize(bytes) {
+  if(bytes < 1024) return bytes + ' B';
+  if(bytes < 1048576) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1048576).toFixed(1) + ' MB';
+}
+
+function renderFileList() {
+  document.getElementById('file-list').innerHTML = currentFiles.map((f, i) => `
+    <div class="file-item">
+      <span>📎</span>
+      <span class="file-name">${f.name}</span>
+      <span class="file-size">${f.size}</span>
+      <button class="file-remove" onclick="removeFile(${i})">✕</button>
+    </div>`).join('');
+}
+
+function removeFile(i) {
+  currentFiles.splice(i, 1);
+  renderFileList();
+}
+
+function savePop() {
+  const name = document.getElementById('f-name').value.trim();
+  const sector = document.getElementById('f-sector').value;
+  if(!name) { alert('Informe o nome do processo.'); return; }
+  if(sector === '') { alert('Selecione o setor.'); return; }
+  const now = new Date();
+  const date = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+  pops.push({
+    name,
+    sector: parseInt(sector),
+    owner: document.getElementById('f-owner').value.trim(),
+    desc: document.getElementById('f-desc').value.trim(),
+    priority: currentPriority,
+    files: [...currentFiles],
+    date,
+  });
+  closeModal();
+  updateStats();
+  renderSectors();
+  if(currentSector !== null && currentSector == parseInt(sector)) renderPopList();
+  showToast('✓ POP salvo com sucesso!');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function handleSearch() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  if(!q) { renderSectors(); return; }
+  const grid = document.getElementById('sectors-grid');
+  const results = pops.filter(p => p.name.toLowerCase().includes(q));
+  if(!results.length) {
+    grid.innerHTML = `<div style="color:var(--gray-text);font-size:13px;padding:20px;">Nenhum POP encontrado para "${q}"</div>`;
+    return;
+  }
+  grid.innerHTML = results.map(p => {
+    const s = SECTORS[p.sector];
+    const realIdx = pops.indexOf(p);
+    return `
+    <div class="pop-item" style="background:var(--gray-dark);border:1px solid var(--gray-border);border-radius:10px;padding:16px 20px;display:flex;align-items:center;gap:16px;">
+      <div class="pop-icon">📋</div>
+      <div class="pop-info" style="flex:1">
+        <div class="pop-title" style="font-weight:500;font-size:14px;color:var(--white-pure)">${p.name}</div>
+        <div class="pop-meta" style="font-size:11px;color:var(--gray-text)">${s.icon} ${s.name} — ${s.sub}</div>
+      </div>
+      <button class="pop-btn primary" onclick="openSector(${p.sector})">Ver setor</button>
+    </div>`;
+  }).join('');
+}
+
+init();
+</script>
+</body>
+</html>
