@@ -634,6 +634,32 @@
   }
   .pop-card-open:hover { background: var(--red-dark); }
   .pop-card-open svg { width: 11px; height: 11px; }
+  .pop-card-desc { font-size:11px; color:var(--gray-text); line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+
+  /* ── ROLES ── */
+  .role-badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; text-transform:uppercase; letter-spacing:.4px; }
+  .role-admin  { background:rgba(232,0,29,.15);  color:var(--red);    border:1px solid rgba(232,0,29,.3); }
+  .role-editor { background:rgba(99,179,237,.1); color:#63b3ed;       border:1px solid rgba(99,179,237,.3); }
+  .role-viewer { background:rgba(255,255,255,.06); color:var(--gray-text); border:1px solid rgba(255,255,255,.1); }
+  .role-select { background:var(--gray-dark); border:1px solid var(--border); border-radius:6px; color:var(--white-pure); font-size:11px; padding:4px 8px; cursor:pointer; }
+  .role-select:focus { outline:none; border-color:var(--red); }
+
+  /* ── DETAIL MODAL ── */
+  .detail-overlay { position:fixed; inset:0; background:rgba(0,0,0,.78); z-index:1100; display:flex; align-items:center; justify-content:center; padding:20px; opacity:0; pointer-events:none; transition:opacity .2s; }
+  .detail-overlay.open { opacity:1; pointer-events:all; }
+  .detail-modal { background:var(--card-bg); border:1px solid var(--border); border-radius:16px; padding:26px; width:100%; max-width:500px; transform:translateY(20px); transition:transform .2s; max-height:90vh; overflow-y:auto; }
+  .detail-overlay.open .detail-modal { transform:translateY(0); }
+  .detail-modal-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:16px; }
+  .detail-modal-title { font-size:17px; font-weight:700; color:var(--white-pure); line-height:1.35; }
+  .detail-modal-meta { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:16px; }
+  .detail-meta-chip { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--gray-text); background:rgba(255,255,255,.05); border:1px solid var(--border); border-radius:6px; padding:4px 9px; }
+  .detail-meta-chip svg { width:11px; height:11px; flex-shrink:0; }
+  .detail-desc-box { font-size:12px; color:var(--gray-text); line-height:1.65; margin-bottom:20px; padding:14px; background:rgba(255,255,255,.03); border-radius:8px; border:1px solid var(--border); white-space:pre-wrap; word-break:break-word; }
+  .detail-actions { display:flex; gap:10px; flex-wrap:wrap; }
+  .detail-btn-open { flex:1; min-width:120px; background:var(--red); color:#fff; border:none; border-radius:8px; padding:11px 16px; font-size:13px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; text-decoration:none; font-family:'Montserrat',sans-serif; transition:background .2s; }
+  .detail-btn-open:hover { background:#c0001a; }
+  .detail-btn-edit { background:rgba(255,255,255,.07); color:var(--white-pure); border:1px solid var(--border); border-radius:8px; padding:11px 16px; font-size:13px; font-weight:500; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-family:'Montserrat',sans-serif; transition:background .2s; }
+  .detail-btn-edit:hover { background:rgba(255,255,255,.12); }
 
   /* ── LINK INPUT ── */
   .link-input-wrap { position: relative; }
@@ -1208,7 +1234,7 @@
         <span class="user-admin-badge" id="user-admin-badge" style="display:none;">Admin</span>
       </div>
     </div>
-    <button class="btn-add-pop" onclick="openModal()">＋ Novo POP</button>
+    <button class="btn-add-pop" id="btn-add-pop" onclick="openModal()">＋ Novo POP</button>
     <button class="btn-logout" id="btn-logout" onclick="authLogout()" style="display:none;">
       <i data-lucide="log-out"></i> Sair
     </button>
@@ -1313,6 +1339,10 @@
         <input class="form-input" id="f-author" type="text" placeholder="Nome do responsável pelo processo" />
       </div>
       <div class="form-group">
+        <label class="form-label">Descrição</label>
+        <textarea class="form-textarea" id="f-desc" placeholder="Descreva o objetivo e o que este processo cobre..." style="min-height:80px;"></textarea>
+      </div>
+      <div class="form-group">
         <label class="form-label">Link do Arquivo *</label>
         <div class="link-input-wrap">
           <i data-lucide="link" class="link-input-icon"></i>
@@ -1328,6 +1358,11 @@
       <button class="btn-save" onclick="savePop()">Salvar POP</button>
     </div>
   </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="detail-overlay" id="pop-detail-overlay" onclick="if(event.target===this)closePopDetail()">
+  <div class="detail-modal" id="pop-detail-content"></div>
 </div>
 
 <!-- TOAST -->
@@ -1423,6 +1458,8 @@ function esc(str) {
 
 let pops = [];
 let currentSector = null;
+window._userRole = 'viewer';
+window._currentSession = null;
 
 function savePops() {
   localStorage.setItem('v4_pops', JSON.stringify(pops));
@@ -1437,24 +1474,79 @@ function loadPops() {
   catch(e) { pops = []; }
 }
 
-function syncPopsFromFirebase(callback) {
-  if (!window._fbDb) { if (callback) callback(); return; }
-  window._fbDb.ref('pops').once('value').then(function(snap) {
+function startPopsListener() {
+  if (!window._fbDb) { renderSectors(); updateStats(); return; }
+  let firstRun = true;
+  window._fbDb.ref('pops').on('value', function(snap) {
     const fbPops = snap.val();
-    if (fbPops && Array.isArray(fbPops) && fbPops.length > 0) {
-      // Firebase tem dados → usa como fonte de verdade
-      pops = fbPops;
-      localStorage.setItem('v4_pops', JSON.stringify(pops));
-    } else if (pops.length > 0) {
-      // Firebase vazio mas localStorage tem dados → sobe para nuvem
-      window._fbDb.ref('pops').set(pops)
-        .catch(function(e) { console.warn('Firebase upload pops error:', e); });
+    if (firstRun) {
+      firstRun = false;
+      if (fbPops && Array.isArray(fbPops) && fbPops.length > 0) {
+        pops = fbPops;
+        localStorage.setItem('v4_pops', JSON.stringify(pops));
+      } else if (pops.length > 0) {
+        window._fbDb.ref('pops').set(pops).catch(function(e){ console.warn(e); });
+      }
+    } else {
+      // Atualização em tempo real de outro cliente
+      if (Array.isArray(fbPops)) {
+        pops = fbPops;
+        localStorage.setItem('v4_pops', JSON.stringify(pops));
+      } else if (fbPops === null) {
+        pops = [];
+        localStorage.setItem('v4_pops', '[]');
+      }
     }
-    if (callback) callback();
-  }).catch(function(e) {
-    console.warn('Firebase syncPops error:', e);
-    if (callback) callback();
+    renderSectors();
+    updateStats();
+    if (currentSector !== null) renderPopCards();
   });
+}
+
+function logPopAction(action, popName) {
+  if (!window._fbDb || !window._currentSession) return;
+  window._fbDb.ref('popsLog').push({
+    action:    action,
+    popName:   popName,
+    userEmail: window._currentSession.email,
+    userName:  window._currentSession.name,
+    timestamp: Date.now(),
+    dateStr:   new Date().toLocaleString('pt-BR'),
+  }).catch(function(e){ console.warn('logPopAction error:', e); });
+}
+
+function openPopDetail(idx) {
+  const p = pops[idx];
+  if (!p) return;
+  const info = getLinkInfo(p.link);
+  const bg   = hexToRgba(info.color, 0.12);
+  const bdr  = hexToRgba(info.color, 0.28);
+  const canEdit = window._userRole === 'admin' || window._userRole === 'editor';
+  document.getElementById('pop-detail-overlay').classList.add('open');
+  document.getElementById('pop-detail-content').innerHTML =
+    '<div class="detail-modal-header">'
+    + '<div style="display:flex;align-items:center;gap:12px;">'
+    + '<div class="link-badge" style="background:' + bg + ';border:1px solid ' + bdr + ';color:' + info.color + ';width:44px;height:44px;flex-shrink:0;"><i data-lucide="' + info.icon + '"></i></div>'
+    + '<div class="detail-modal-title">' + esc(p.name) + '</div>'
+    + '</div>'
+    + '<button class="modal-close" onclick="closePopDetail()"><i data-lucide="x"></i></button>'
+    + '</div>'
+    + '<div class="detail-modal-meta">'
+    + '<span class="detail-meta-chip"><i data-lucide="layers"></i> ' + esc(SECTORS[p.sector]?.name || '—') + '</span>'
+    + (p.author ? '<span class="detail-meta-chip"><i data-lucide="user"></i> ' + esc(p.author) + '</span>' : '')
+    + '<span class="detail-meta-chip"><i data-lucide="calendar"></i> ' + esc(p.date) + '</span>'
+    + '<span class="detail-meta-chip" style="color:' + info.color + ';border-color:' + bdr + ';background:' + bg + ';">' + esc(info.label) + '</span>'
+    + '</div>'
+    + '<div class="detail-desc-box">' + (p.description ? esc(p.description) : '<span style="opacity:.35;font-style:italic;">Sem descrição cadastrada.</span>') + '</div>'
+    + '<div class="detail-actions">'
+    + '<a class="detail-btn-open" href="' + esc(p.link) + '" target="_blank" rel="noopener noreferrer"><i data-lucide="external-link"></i> Abrir Documento</a>'
+    + (canEdit ? '<button class="detail-btn-edit" onclick="closePopDetail();editPop(' + idx + ')"><i data-lucide="pencil"></i> Editar</button>' : '')
+    + '</div>';
+  lucide.createIcons();
+}
+
+function closePopDetail() {
+  document.getElementById('pop-detail-overlay').classList.remove('open');
 }
 
 function init() {
@@ -1528,48 +1620,37 @@ function renderPopCards() {
 
   if (!sectorPops.length) {
     container.className = '';
-    container.innerHTML = `<div style="text-align:center;padding:40px;color:var(--gray-text);font-size:13px;">
-      Nenhum processo cadastrado neste setor ainda.<br><br>
-      <button class="btn-save" onclick="openModal(currentSector)" style="margin-top:8px;">＋ Adicionar primeiro POP</button>
-    </div>`;
+    const canAdd = window._userRole === 'admin' || window._userRole === 'editor';
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--gray-text);font-size:13px;">'
+      + 'Nenhum processo cadastrado neste setor ainda.'
+      + (canAdd ? '<br><br><button class="btn-save" onclick="openModal(currentSector)" style="margin-top:8px;">＋ Adicionar primeiro POP</button>' : '')
+      + '</div>';
     lucide.createIcons();
     return;
   }
 
+  const canEdit = window._userRole === 'admin' || window._userRole === 'editor';
   container.className = 'pop-cards-grid';
-  container.innerHTML = sectorPops.map(p => {
+  container.innerHTML = sectorPops.map(function(p) {
     const idx  = pops.indexOf(p);
     const info = getLinkInfo(p.link);
     const bg   = hexToRgba(info.color, 0.12);
     const bdr  = hexToRgba(info.color, 0.28);
-    return `
-    <div class="pop-card" onclick="openLink('${esc(p.link)}')">
-      <div class="pop-card-top">
-        <div class="link-badge" style="background:${bg};border:1px solid ${bdr};color:${info.color};">
-          <i data-lucide="${info.icon}"></i>
-        </div>
-        <div class="pop-card-action-group">
-          <button class="pop-card-edit" title="Editar POP"
-            onclick="event.stopPropagation();editPop(${idx})">
-            <i data-lucide="pencil"></i>
-          </button>
-          <button class="pop-card-delete" title="Remover POP"
-            onclick="event.stopPropagation();deletePop(${idx})">
-            <i data-lucide="x"></i>
-          </button>
-        </div>
-      </div>
-      <div class="pop-card-name">${esc(p.name)}</div>
-      <div class="pop-card-sector">${esc(SECTORS[p.sector].name)} · ${esc(p.date)}</div>
-      ${p.author ? `<div class="pop-card-sector" style="margin-top:-4px;"><i data-lucide="user" style="width:10px;height:10px;vertical-align:-1px;"></i> ${esc(p.author)}</div>` : ''}
-      <div class="pop-card-footer">
-        <span class="pop-card-service">${esc(info.label)}</span>
-        <a class="pop-card-open" href="${esc(p.link)}" target="_blank" rel="noopener noreferrer"
-           onclick="event.stopPropagation()">
-          Abrir <i data-lucide="external-link"></i>
-        </a>
-      </div>
-    </div>`;
+    return '<div class="pop-card" onclick="openPopDetail(' + idx + ')">'
+      + '<div class="pop-card-top">'
+      + '<div class="link-badge" style="background:' + bg + ';border:1px solid ' + bdr + ';color:' + info.color + ';"><i data-lucide="' + info.icon + '"></i></div>'
+      + '<div class="pop-card-action-group">'
+      + (canEdit ? '<button class="pop-card-edit" title="Editar POP" onclick="event.stopPropagation();editPop(' + idx + ')"><i data-lucide="pencil"></i></button>' : '')
+      + (canEdit ? '<button class="pop-card-delete" title="Remover POP" onclick="event.stopPropagation();deletePop(' + idx + ')"><i data-lucide="x"></i></button>' : '')
+      + '</div></div>'
+      + '<div class="pop-card-name">' + esc(p.name) + '</div>'
+      + '<div class="pop-card-sector">' + esc(SECTORS[p.sector].name) + ' · ' + esc(p.date) + '</div>'
+      + (p.author ? '<div class="pop-card-sector" style="margin-top:-4px;"><i data-lucide="user" style="width:10px;height:10px;vertical-align:-1px;"></i> ' + esc(p.author) + '</div>' : '')
+      + (p.description ? '<div class="pop-card-desc">' + esc(p.description) + '</div>' : '')
+      + '<div class="pop-card-footer">'
+      + '<span class="pop-card-service">' + esc(info.label) + '</span>'
+      + '<a class="pop-card-open" href="' + esc(p.link) + '" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Abrir <i data-lucide="external-link"></i></a>'
+      + '</div></div>';
   }).join('');
   lucide.createIcons();
 }
@@ -1580,6 +1661,7 @@ function openLink(url) {
 
 function deletePop(i) {
   if (confirm('Remover este POP?')) {
+    logPopAction('excluiu', pops[i].name);
     pops.splice(i, 1);
     savePops();
     renderPopCards();
@@ -1611,6 +1693,7 @@ function editPop(i) {
   document.getElementById('f-name').value   = p.name;
   document.getElementById('f-sector').value = p.sector;
   document.getElementById('f-author').value = p.author || '';
+  document.getElementById('f-desc').value   = p.description || '';
   document.getElementById('f-link').value   = p.link;
   updateLinkPreview(p.link);
   lucide.createIcons();
@@ -1629,10 +1712,11 @@ function resetModal() {
   editingIdx = null;
   document.getElementById('modal-title').textContent = 'Novo Processo (POP)';
   document.getElementById('modal-subtitle').textContent = 'Preencha as informações do processo';
-  document.getElementById('f-name').value = '';
+  document.getElementById('f-name').value   = '';
   document.getElementById('f-sector').value = '';
   document.getElementById('f-author').value = '';
-  document.getElementById('f-link').value = '';
+  document.getElementById('f-desc').value   = '';
+  document.getElementById('f-link').value   = '';
   updateLinkPreview('');
 }
 
@@ -1657,11 +1741,13 @@ function savePop() {
   if (!name)   { alert('Informe o nome do processo.'); return; }
   if (!sector) { alert('Selecione o setor.'); return; }
   if (!link)   { alert('Informe o link do arquivo.'); return; }
-  const author = document.getElementById('f-author').value.trim();
+  const author      = document.getElementById('f-author').value.trim();
+  const description = document.getElementById('f-desc').value.trim();
 
   if (editingIdx !== null) {
     // Modo edição — preserva a data original
-    pops[editingIdx] = { ...pops[editingIdx], name, sector: parseInt(sector), author, link };
+    pops[editingIdx] = { ...pops[editingIdx], name, sector: parseInt(sector), author, description, link };
+    logPopAction('editou', name);
     savePops();
     closeModal();
     updateStats();
@@ -1671,7 +1757,8 @@ function savePop() {
   } else {
     // Modo criação
     const date = new Date().toLocaleDateString('pt-BR');
-    pops.push({ name, sector: parseInt(sector), author, link, date });
+    pops.push({ name, sector: parseInt(sector), author, description, link, date });
+    logPopAction('criou', name);
     savePops();
     closeModal();
     updateStats();
@@ -2149,6 +2236,34 @@ A Central detecta automaticamente o serviço pelo link: Google Drive, OneDrive, 
   function emailToKey(email) {
     return email.replace(/\./g, ',');
   }
+  window._emailToKey = emailToKey;
+
+  function loadUserRole(session, callback) {
+    if (session.isAdmin) {
+      window._userRole = 'admin';
+      if (fbDb) fbDb.ref('users/' + emailToKey(session.email) + '/role').set('admin').catch(console.warn);
+      if (callback) callback();
+      return;
+    }
+    if (!fbDb) { window._userRole = 'viewer'; if (callback) callback(); return; }
+    fbDb.ref('users/' + emailToKey(session.email) + '/role').once('value').then(function(snap) {
+      window._userRole = snap.val() || 'viewer';
+      if (callback) callback();
+    }).catch(function() {
+      window._userRole = 'viewer';
+      if (callback) callback();
+    });
+  }
+
+  window.adminSetRole = function(emailKey, role) {
+    if (!fbDb) return;
+    fbDb.ref('users/' + emailKey + '/role').set(role)
+      .then(function() {
+        showToast('<i data-lucide="check"></i> Cargo atualizado!');
+        showAdminWithData();
+      })
+      .catch(function(e) { alert('Erro ao atualizar cargo: ' + e.message); });
+  };
 
   function logUserAccess(session) {
     if (!fbDb) return;
@@ -2182,15 +2297,16 @@ A Central detecta automaticamente o serviço pelo link: Google Drive, OneDrive, 
   }
 
   function loadFirebaseUsers(callback) {
-    if (!fbDb) { callback(null, null); return; }
+    if (!fbDb) { callback(null, null, null); return; }
     Promise.all([
       fbDb.ref('users').once('value'),
       fbDb.ref('accessLog').once('value'),
+      fbDb.ref('popsLog').once('value'),
     ]).then(function(snaps) {
-      callback(snaps[0].val(), snaps[1].val());
+      callback(snaps[0].val(), snaps[1].val(), snaps[2].val());
     }).catch(function(e) {
       console.warn('Firebase load error:', e);
-      callback(null, null);
+      callback(null, null, null);
     });
   }
 
@@ -2291,15 +2407,18 @@ A Central detecta automaticamente o serviço pelo link: Google Drive, OneDrive, 
 
   // ── Entrar no app ────────────────────────────────────────
   function enterApp(session) {
+    window._currentSession = session;
     document.getElementById('login-screen').classList.add('hidden');
     updateSidebarUser(session);
     lucide.createIcons();
     initFirebase();
     logUserAccess(session);
-    syncPopsFromFirebase(function() {
-      renderSectors();
-      updateStats();
-      if (currentSector !== null) renderPopCards();
+    loadUserRole(session, function() {
+      // Mostra/esconde botão de novo POP conforme role
+      const canEdit = window._userRole === 'admin' || window._userRole === 'editor';
+      const btnAdd = document.getElementById('btn-add-pop');
+      if (btnAdd) btnAdd.style.display = canEdit ? '' : 'none';
+      startPopsListener();
     });
   }
 
@@ -2358,7 +2477,7 @@ A Central detecta automaticamente o serviço pelo link: Google Drive, OneDrive, 
     showAdminWithData();
   };
 
-  function renderAdminPanel(fbUsers, fbLog) {
+  function renderAdminPanel(fbUsers, fbLog, fbPopsLog) {
     const view   = document.getElementById('admin-view');
     const gId    = localStorage.getItem(KEY_CLIENT_ID)   || '';
     const gemKey = localStorage.getItem('v4_openai_key') || '';
@@ -2392,12 +2511,25 @@ A Central detecta automaticamente o serviço pelo link: Google Drive, OneDrive, 
         const avatar = u.picture
           ? '<img src="' + escH(u.picture) + '" style="width:28px;height:28px;border-radius:50%;vertical-align:middle;margin-right:8px;" />'
           : '<span style="display:inline-block;width:28px;height:28px;border-radius:50%;background:var(--red);margin-right:8px;vertical-align:middle;"></span>';
+        const role = u.role || 'viewer';
+        const roleLabel = role === 'admin' ? 'Admin' : role === 'editor' ? 'Editor' : 'Visualizador';
+        const roleCls   = 'role-' + role;
+        const key = emailToKey(u.email);
+        const isAdmin = u.email === ADMIN_EMAIL;
+        const roleCell = isAdmin
+          ? '<span class="role-badge ' + roleCls + '">' + roleLabel + '</span>'
+          : '<select class="role-select" onchange="adminSetRole(\'' + escH(key) + '\',this.value)">'
+            + '<option value="viewer"' + (role==='viewer'?' selected':'') + '>Visualizador</option>'
+            + '<option value="editor"' + (role==='editor'?' selected':'') + '>Editor</option>'
+            + '<option value="admin"'  + (role==='admin' ?' selected':'') + '>Admin</option>'
+            + '</select>';
         return '<tr>'
           + '<td>' + avatar + escH(u.name || '—') + '</td>'
           + '<td class="td-muted">' + escH(u.email) + '</td>'
           + '<td class="td-muted">' + escH(u.firstAccessStr || '—') + '</td>'
           + '<td class="td-muted">' + escH(u.lastAccessStr  || '—') + '</td>'
           + '<td class="td-muted" style="text-align:center;">' + (u.accessCount || 1) + '</td>'
+          + '<td>' + roleCell + '</td>'
           + '</tr>';
       }).join('');
     }
@@ -2438,7 +2570,7 @@ A Central detecta automaticamente o serviço pelo link: Google Drive, OneDrive, 
       + '<div class="admin-section">'
       + '<div class="admin-section-header"><i data-lucide="users"></i> Usuários &amp; Acessos <span style="font-weight:400;color:var(--gray-text);font-size:12px;margin-left:4px;">(' + userCount + ' usuários)</span></div>'
       + '<div class="admin-table-wrap"><table class="admin-table">'
-      + '<thead><tr><th>Nome</th><th>E-mail</th><th>Primeiro acesso</th><th>Último acesso</th><th style="text-align:center;">Acessos</th></tr></thead>'
+      + '<thead><tr><th>Nome</th><th>E-mail</th><th>Primeiro acesso</th><th>Último acesso</th><th style="text-align:center;">Acessos</th><th>Cargo</th></tr></thead>'
       + '<tbody>' + usersRows + '</tbody>'
       + '</table></div></div>'
 
@@ -2448,18 +2580,42 @@ A Central detecta automaticamente o serviço pelo link: Google Drive, OneDrive, 
       + '<div class="admin-table-wrap"><table class="admin-table">'
       + '<thead><tr><th>Nome</th><th>Setor</th><th>Autor</th><th>Data</th><th>Link</th><th>Ações</th></tr></thead>'
       + '<tbody>' + tableRows + '</tbody>'
-      + '</table></div></div>';
+      + '</table></div></div>'
+
+      // Histórico de alterações
+      + (function() {
+          let logRows = '<tr><td colspan="4" class="admin-empty">Nenhuma alteração registrada ainda.</td></tr>';
+          if (fbPopsLog) {
+            const entries = Object.values(fbPopsLog).sort(function(a,b){ return (b.timestamp||0)-(a.timestamp||0); }).slice(0,50);
+            const actionIcon = { 'criou':'plus-circle', 'editou':'pencil', 'excluiu':'trash-2' };
+            logRows = entries.map(function(e) {
+              const icon = actionIcon[e.action] || 'activity';
+              return '<tr>'
+                + '<td><i data-lucide="' + icon + '" style="width:13px;height:13px;vertical-align:-2px;margin-right:5px;"></i>' + escH(e.action) + '</td>'
+                + '<td>' + escH(e.popName) + '</td>'
+                + '<td class="td-muted">' + escH(e.userName || e.userEmail) + '</td>'
+                + '<td class="td-muted">' + escH(e.dateStr) + '</td>'
+                + '</tr>';
+            }).join('');
+          }
+          return '<div class="admin-section">'
+            + '<div class="admin-section-header"><i data-lucide="activity"></i> Histórico de Alterações <span style="font-weight:400;color:var(--gray-text);font-size:12px;margin-left:4px;">(últimas 50)</span></div>'
+            + '<div class="admin-table-wrap"><table class="admin-table">'
+            + '<thead><tr><th>Ação</th><th>POP</th><th>Usuário</th><th>Data/Hora</th></tr></thead>'
+            + '<tbody>' + logRows + '</tbody>'
+            + '</table></div></div>';
+        })();
 
     lucide.createIcons();
   }
 
   function showAdminWithData() {
     if (fbDb) {
-      loadFirebaseUsers(function(users, log) {
-        renderAdminPanel(users, log);
+      loadFirebaseUsers(function(users, log, popsLog) {
+        renderAdminPanel(users, log, popsLog);
       });
     } else {
-      renderAdminPanel(null, null);
+      renderAdminPanel(null, null, null);
     }
   }
 
