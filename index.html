@@ -7,6 +7,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <style>
   :root {
     --red: #E8001D;
@@ -1129,7 +1131,7 @@
     <div class="login-brand">V4<span>.</span>Company</div>
     <div class="login-brand-sub">Central de POPs</div>
     <h2>Entrar</h2>
-    <p class="login-desc">Acesso exclusivo para colaboradores<br><strong>@v4company.com</strong></p>
+    <p class="login-desc">Acesso exclusivo para investidores<br><strong>@v4company.com</strong></p>
     <div class="login-google-wrap" id="login-google-btn"></div>
     <div class="login-error" id="login-error"></div>
     <!-- Setup do Client ID — exibido quando não configurado -->
@@ -2017,6 +2019,77 @@ Responda sempre em português do Brasil. Seja conciso (máx. 4 parágrafos curto
   const ADMIN_EMAIL   = 'adriano@v4company.com';
   const ALLOWED_DOMAIN = 'v4company.com';
 
+  // ── Firebase ─────────────────────────────────────────────
+  const FB_CONFIG = {
+    apiKey: "AIzaSyDID5mJ0OTL8jTs2CvzpdBO8Box8s2cemc",
+    authDomain: "v4-pops.firebaseapp.com",
+    databaseURL: "https://v4-pops-default-rtdb.firebaseio.com",
+    projectId: "v4-pops",
+    storageBucket: "v4-pops.firebasestorage.app",
+    messagingSenderId: "15289610049",
+    appId: "1:15289610049:web:50ec6a7d3510200b07fbc0"
+  };
+
+  let fbDb = null;
+
+  function initFirebase() {
+    try {
+      if (typeof firebase === 'undefined') return;
+      if (!firebase.apps.length) {
+        firebase.initializeApp(FB_CONFIG);
+      }
+      fbDb = firebase.database();
+    } catch(e) { console.warn('Firebase init error:', e); }
+  }
+
+  function emailToKey(email) {
+    return email.replace(/\./g, ',');
+  }
+
+  function logUserAccess(session) {
+    if (!fbDb) return;
+    const key  = emailToKey(session.email);
+    const now  = Date.now();
+    const str  = new Date(now).toLocaleString('pt-BR');
+    const ref  = fbDb.ref('users/' + key);
+    ref.once('value').then(function(snap) {
+      const existing = snap.val();
+      const update = {
+        email:         session.email,
+        name:          session.name,
+        picture:       session.picture || '',
+        lastAccess:    now,
+        lastAccessStr: str,
+        accessCount:   existing ? (existing.accessCount || 0) + 1 : 1,
+      };
+      if (!existing || !existing.firstAccess) {
+        update.firstAccess    = now;
+        update.firstAccessStr = str;
+      }
+      return ref.update(update);
+    }).then(function() {
+      return fbDb.ref('accessLog').push({
+        email:     session.email,
+        name:      session.name,
+        timestamp: now,
+        dateStr:   str,
+      });
+    }).catch(function(e) { console.warn('Firebase log error:', e); });
+  }
+
+  function loadFirebaseUsers(callback) {
+    if (!fbDb) { callback(null, null); return; }
+    Promise.all([
+      fbDb.ref('users').once('value'),
+      fbDb.ref('accessLog').once('value'),
+    ]).then(function(snaps) {
+      callback(snaps[0].val(), snaps[1].val());
+    }).catch(function(e) {
+      console.warn('Firebase load error:', e);
+      callback(null, null);
+    });
+  }
+
   // ── Helpers ─────────────────────────────────────────────
   function getSession() {
     try { return JSON.parse(localStorage.getItem(KEY_SESSION) || 'null'); }
@@ -2109,6 +2182,8 @@ Responda sempre em português do Brasil. Seja conciso (máx. 4 parágrafos curto
     document.getElementById('login-screen').classList.add('hidden');
     updateSidebarUser(session);
     lucide.createIcons();
+    initFirebase();
+    logUserAccess(session);
   }
 
   function updateSidebarUser(session) {
@@ -2159,13 +2234,16 @@ Responda sempre em português do Brasil. Seja conciso (máx. 4 parágrafos curto
     document.getElementById('page-sub').textContent   = 'Configurações e gerenciamento';
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     document.getElementById('nav-admin').classList.add('active');
-    renderAdminPanel();
+    showAdminWithData();
   };
 
-  function renderAdminPanel() {
+  function renderAdminPanel(fbUsers, fbLog) {
     const view   = document.getElementById('admin-view');
     const gId    = localStorage.getItem(KEY_CLIENT_ID)   || '';
     const gemKey = localStorage.getItem('v4_gemini_key') || '';
+
+    const userCount   = fbUsers ? Object.keys(fbUsers).length : '—';
+    const accessCount = fbLog   ? Object.keys(fbLog).length   : '—';
 
     const tableRows = pops.length
       ? pops.map(function (p, i) {
@@ -2183,6 +2261,26 @@ Responda sempre em português do Brasil. Seja conciso (máx. 4 parágrafos curto
         }).join('')
       : '<tr><td colspan="6" class="admin-empty">Nenhum POP cadastrado ainda.</td></tr>';
 
+    // Tabela de usuários Firebase
+    let usersRows = '<tr><td colspan="5" class="admin-empty">Nenhum usuário registrado ainda.</td></tr>';
+    if (fbUsers) {
+      const arr = Object.values(fbUsers).sort(function(a, b) {
+        return (b.lastAccess || 0) - (a.lastAccess || 0);
+      });
+      usersRows = arr.map(function(u) {
+        const avatar = u.picture
+          ? '<img src="' + escH(u.picture) + '" style="width:28px;height:28px;border-radius:50%;vertical-align:middle;margin-right:8px;" />'
+          : '<span style="display:inline-block;width:28px;height:28px;border-radius:50%;background:var(--red);margin-right:8px;vertical-align:middle;"></span>';
+        return '<tr>'
+          + '<td>' + avatar + escH(u.name || '—') + '</td>'
+          + '<td class="td-muted">' + escH(u.email) + '</td>'
+          + '<td class="td-muted">' + escH(u.firstAccessStr || '—') + '</td>'
+          + '<td class="td-muted">' + escH(u.lastAccessStr  || '—') + '</td>'
+          + '<td class="td-muted" style="text-align:center;">' + (u.accessCount || 1) + '</td>'
+          + '</tr>';
+      }).join('');
+    }
+
     view.innerHTML =
       // Stats
       '<div class="admin-section">'
@@ -2191,6 +2289,8 @@ Responda sempre em português do Brasil. Seja conciso (máx. 4 parágrafos curto
       + '<div class="admin-stat accent"><div class="as-label">Total de POPs</div><div class="as-value">' + pops.length + '</div></div>'
       + '<div class="admin-stat"><div class="as-label">Setores utilizados</div><div class="as-value">' + new Set(pops.map(function(p){return p.sector;})).size + '</div></div>'
       + '<div class="admin-stat"><div class="as-label">Setores disponíveis</div><div class="as-value">7</div></div>'
+      + '<div class="admin-stat"><div class="as-label">Usuários registrados</div><div class="as-value" id="stat-fb-users">' + userCount + '</div></div>'
+      + '<div class="admin-stat"><div class="as-label">Total de acessos</div><div class="as-value" id="stat-fb-accesses">' + accessCount + '</div></div>'
       + '</div></div>'
 
       // Configurações
@@ -2213,6 +2313,14 @@ Responda sempre em português do Brasil. Seja conciso (máx. 4 parágrafos curto
       + '<div class="admin-key-hint ' + (gemKey ? 'ok' : '') + '">' + (gemKey ? '✓ Chave configurada' : 'Não configurada — necessária para o chat IA') + '</div>'
       + '</div></div>'
 
+      // Tabela de usuários
+      + '<div class="admin-section">'
+      + '<div class="admin-section-header"><i data-lucide="users"></i> Usuários &amp; Acessos <span style="font-weight:400;color:var(--gray-text);font-size:12px;margin-left:4px;">(' + userCount + ' usuários)</span></div>'
+      + '<div class="admin-table-wrap"><table class="admin-table">'
+      + '<thead><tr><th>Nome</th><th>E-mail</th><th>Primeiro acesso</th><th>Último acesso</th><th style="text-align:center;">Acessos</th></tr></thead>'
+      + '<tbody>' + usersRows + '</tbody>'
+      + '</table></div></div>'
+
       // Tabela de POPs
       + '<div class="admin-section">'
       + '<div class="admin-section-header"><i data-lucide="list"></i> Todos os POPs <span style="font-weight:400;color:var(--gray-text);font-size:12px;margin-left:4px;">(' + pops.length + ')</span></div>'
@@ -2224,17 +2332,27 @@ Responda sempre em português do Brasil. Seja conciso (máx. 4 parágrafos curto
     lucide.createIcons();
   }
 
+  function showAdminWithData() {
+    if (fbDb) {
+      loadFirebaseUsers(function(users, log) {
+        renderAdminPanel(users, log);
+      });
+    } else {
+      renderAdminPanel(null, null);
+    }
+  }
+
   window.adminSaveGoogleId = function () {
     const val = (document.getElementById('admin-gid')?.value || '').trim();
     localStorage.setItem(KEY_CLIENT_ID, val);
-    renderAdminPanel();
+    showAdminWithData();
     showToast('<i data-lucide="check"></i> Client ID salvo!');
   };
 
   window.adminSaveGemKey = function () {
     const val = (document.getElementById('admin-gemkey')?.value || '').trim();
     localStorage.setItem('v4_gemini_key', val);
-    renderAdminPanel();
+    showAdminWithData();
     showToast('<i data-lucide="check"></i> Gemini API Key salva!');
   };
 
@@ -2247,7 +2365,7 @@ Responda sempre em português do Brasil. Seja conciso (máx. 4 parágrafos curto
       window.closeModal = origClose;
       // Se ainda estamos no admin, re-renderiza
       if (document.getElementById('admin-view').classList.contains('active')) {
-        renderAdminPanel();
+        showAdminWithData();
       }
     };
   };
@@ -2257,7 +2375,7 @@ Responda sempre em português do Brasil. Seja conciso (máx. 4 parágrafos curto
     pops.splice(i, 1);
     savePops();
     updateStats();
-    renderAdminPanel();
+    showAdminWithData();
   };
 
 })(); // fim IIFE auth
