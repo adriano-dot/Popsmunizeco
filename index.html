@@ -1124,6 +1124,10 @@
         </select>
       </div>
       <div class="form-group">
+        <label class="form-label">Criado por</label>
+        <input class="form-input" id="f-author" type="text" placeholder="Nome do responsável pelo processo" />
+      </div>
+      <div class="form-group">
         <label class="form-label">Link do Arquivo *</label>
         <div class="link-input-wrap">
           <i data-lucide="link" class="link-input-icon"></i>
@@ -1340,6 +1344,7 @@ function renderPopCards() {
       </div>
       <div class="pop-card-name">${esc(p.name)}</div>
       <div class="pop-card-sector">${esc(SECTORS[p.sector].name)} · ${esc(p.date)}</div>
+      ${p.author ? `<div class="pop-card-sector" style="margin-top:-4px;"><i data-lucide="user" style="width:10px;height:10px;vertical-align:-1px;"></i> ${esc(p.author)}</div>` : ''}
       <div class="pop-card-footer">
         <span class="pop-card-service">${esc(info.label)}</span>
         <a class="pop-card-open" href="${esc(p.link)}" target="_blank" rel="noopener noreferrer"
@@ -1387,6 +1392,7 @@ function closeModalOutside(e) {
 function resetModal() {
   document.getElementById('f-name').value = '';
   document.getElementById('f-sector').value = '';
+  document.getElementById('f-author').value = '';
   document.getElementById('f-link').value = '';
   updateLinkPreview('');
 }
@@ -1412,8 +1418,9 @@ function savePop() {
   if (!name)   { alert('Informe o nome do processo.'); return; }
   if (!sector) { alert('Selecione o setor.'); return; }
   if (!link)   { alert('Informe o link do arquivo.'); return; }
+  const author = document.getElementById('f-author').value.trim();
   const date = new Date().toLocaleDateString('pt-BR');
-  pops.push({ name, sector: parseInt(sector), link, date });
+  pops.push({ name, sector: parseInt(sector), author, link, date });
   savePops();
   closeModal();
   updateStats();
@@ -1459,6 +1466,7 @@ function handleSearch() {
       </div>
       <div class="pop-card-name">${esc(p.name)}</div>
       <div class="pop-card-sector">${esc(SECTORS[p.sector].name)}</div>
+      ${p.author ? `<div class="pop-card-sector" style="margin-top:-4px;"><i data-lucide="user" style="width:10px;height:10px;vertical-align:-1px;"></i> ${esc(p.author)}</div>` : ''}
       <div class="pop-card-footer">
         <span class="pop-card-service">${esc(info.label)}</span>
         <a class="pop-card-open" href="${esc(p.link)}" target="_blank" rel="noopener noreferrer"
