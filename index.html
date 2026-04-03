@@ -6,6 +6,7 @@
 <title>Central de POPs — V4 Company</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root {
     --red: #E8001D;
@@ -1006,9 +1007,149 @@
     padding: 0 20px;
   }
   .chat-empty svg { width: 32px; height: 32px; opacity: 0.3; margin-bottom: 4px; }
+
+  /* ══ LOGIN ══════════════════════════════════════════════ */
+  .login-screen {
+    position: fixed; inset: 0; background: var(--black);
+    z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .login-screen.hidden { display: none; }
+  .login-card {
+    background: var(--gray-dark); border: 1px solid var(--gray-border);
+    border-radius: 16px; padding: 40px 36px;
+    width: 100%; max-width: 400px;
+    display: flex; flex-direction: column; align-items: center; gap: 0; text-align: center;
+  }
+  .login-brand { font-weight: 800; font-size: 26px; color: var(--white-pure); margin-bottom: 3px; }
+  .login-brand span { color: var(--red); }
+  .login-brand-sub { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--gray-text); margin-bottom: 28px; }
+  .login-card h2 { font-size: 18px; font-weight: 700; color: var(--white-pure); margin-bottom: 6px; }
+  .login-desc { font-size: 12px; color: var(--gray-text); line-height: 1.5; margin-bottom: 28px; }
+  .login-google-wrap { width: 100%; display: flex; justify-content: center; min-height: 44px; margin-bottom: 8px; }
+  .login-error {
+    font-size: 12px; color: var(--red);
+    background: rgba(232,0,29,0.08); border: 1px solid rgba(232,0,29,0.2);
+    border-radius: 6px; padding: 9px 12px; display: none;
+    width: 100%; text-align: left; margin-top: 4px; line-height: 1.4;
+  }
+  .login-error.show { display: block; }
+  .login-divider { width: 100%; height: 1px; background: var(--gray-border); margin: 20px 0 16px; }
+  .login-setup { width: 100%; display: flex; flex-direction: column; gap: 8px; text-align: left; }
+  .login-setup-row { display: flex; gap: 8px; align-items: center; }
+  .login-setup-row .form-input { flex: 1; }
+  .login-setup-note { font-size: 10px; color: var(--gray-text); line-height: 1.65; }
+  .login-setup-note code {
+    background: var(--gray-mid); border: 1px solid var(--gray-border);
+    padding: 1px 4px; border-radius: 3px; font-family: monospace; font-size: 10px; color: var(--white);
+  }
+
+  /* ══ SIDEBAR USER ════════════════════════════════════════ */
+  .sidebar-user {
+    display: flex; align-items: center; gap: 9px;
+    padding: 0 0 12px; border-bottom: 1px solid var(--gray-border); margin-bottom: 10px;
+  }
+  .user-avatar {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    background: rgba(232,0,29,0.1); border: 1px solid rgba(232,0,29,0.2);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--red); overflow: hidden;
+  }
+  .user-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+  .user-avatar svg { width: 14px; height: 14px; }
+  .user-info { flex: 1; min-width: 0; }
+  .user-fullname { font-size: 11px; font-weight: 600; color: var(--white-pure); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-email-small { font-size: 10px; color: var(--gray-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-admin-badge {
+    display: inline-block; font-size: 8px; letter-spacing: 0.5px; font-weight: 700;
+    text-transform: uppercase; background: rgba(232,0,29,0.12);
+    border: 1px solid rgba(232,0,29,0.25); color: var(--red);
+    border-radius: 4px; padding: 1px 5px; margin-top: 1px;
+  }
+  .btn-logout {
+    width: 100%; background: transparent; border: 1px solid var(--gray-border);
+    border-radius: 6px; padding: 7px 14px; color: var(--gray-text);
+    font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 11px; cursor: pointer;
+    transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+    gap: 6px; margin-top: 8px;
+  }
+  .btn-logout:hover { color: var(--white); border-color: #aaa; }
+  .btn-logout svg { width: 13px; height: 13px; }
+
+  /* ══ ADMIN PANEL ═════════════════════════════════════════ */
+  .admin-view { display: none; }
+  .admin-view.active { display: block; animation: fadeIn 0.25s ease; }
+  .admin-section {
+    background: var(--gray-dark); border: 1px solid var(--gray-border);
+    border-radius: 12px; padding: 22px 24px; margin-bottom: 20px;
+  }
+  .admin-section-header {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 18px;
+    font-size: 13px; font-weight: 700; color: var(--white-pure);
+  }
+  .admin-section-header svg { width: 15px; height: 15px; color: var(--red); }
+  .admin-key-row { display: flex; gap: 8px; align-items: center; }
+  .admin-key-row input {
+    flex: 1; background: var(--gray-mid); border: 1px solid var(--gray-border);
+    border-radius: 7px; padding: 9px 12px; color: var(--white);
+    font-family: 'Montserrat', sans-serif; font-size: 12px; outline: none; transition: border-color 0.2s;
+  }
+  .admin-key-row input:focus { border-color: var(--red); }
+  .admin-key-row .btn-sm {
+    padding: 9px 16px; background: var(--red); border: none; border-radius: 7px; color: white;
+    font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 700;
+    cursor: pointer; white-space: nowrap; transition: background 0.2s;
+  }
+  .admin-key-row .btn-sm:hover { background: var(--red-dark); }
+  .admin-key-hint { font-size: 10px; color: var(--gray-text); margin-top: 6px; }
+  .admin-key-hint.ok { color: #22c55e; }
+  .admin-stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 12px; }
+  .admin-stat { background: var(--gray-mid); border: 1px solid var(--gray-border); border-radius: 8px; padding: 14px 16px; }
+  .admin-stat .as-label { font-size: 10px; color: var(--gray-text); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+  .admin-stat .as-value { font-size: 28px; font-weight: 800; color: var(--white-pure); }
+  .admin-stat.accent .as-value { color: var(--red); }
+  .admin-table-wrap { overflow-x: auto; }
+  .admin-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .admin-table th { text-align: left; color: var(--gray-text); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; padding: 6px 10px; border-bottom: 1px solid var(--gray-border); font-weight: 500; }
+  .admin-table td { padding: 10px; border-bottom: 1px solid var(--gray-border); color: var(--white); vertical-align: middle; }
+  .admin-table tr:last-child td { border-bottom: none; }
+  .admin-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .admin-table .td-muted { font-size: 10px; color: var(--gray-text); white-space: nowrap; }
+  .admin-table .td-actions { display: flex; gap: 6px; }
+  .admin-table .td-link a { color: var(--red); text-decoration: none; font-size: 11px; display: flex; align-items: center; gap: 3px; }
+  .admin-table .td-link a:hover { text-decoration: underline; }
+  .admin-table .td-link svg, .admin-table .td-actions svg { width: 12px; height: 12px; }
+  .admin-empty { text-align: center; padding: 30px; color: var(--gray-text); font-size: 13px; }
 </style>
 </head>
 <body>
+
+<!-- LOGIN SCREEN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-card">
+    <div class="login-brand">V4<span>.</span>Company</div>
+    <div class="login-brand-sub">Central de POPs</div>
+    <h2>Entrar</h2>
+    <p class="login-desc">Acesso exclusivo para colaboradores<br><strong>@v4company.com</strong></p>
+    <div class="login-google-wrap" id="login-google-btn"></div>
+    <div class="login-error" id="login-error"></div>
+    <!-- Setup do Client ID — exibido quando não configurado -->
+    <div class="login-setup" id="login-setup" style="display:none;">
+      <div class="login-divider"></div>
+      <label class="form-label" style="width:100%;">Google OAuth Client ID</label>
+      <div class="login-setup-row">
+        <input class="form-input" id="setup-client-id" type="text"
+          placeholder="000000000000-xxxx.apps.googleusercontent.com" autocomplete="off"
+          onkeydown="if(event.key==='Enter')authSaveClientId()" />
+        <button class="btn-save" onclick="authSaveClientId()">Salvar</button>
+      </div>
+      <p class="login-setup-note">
+        Acesse <code>console.cloud.google.com</code> → APIs &amp; Serviços → Credenciais →
+        Criar ID do cliente OAuth 2.0 (tipo: Aplicativo da Web).
+        Adicione a URL desta página nas <strong>Origens autorizadas</strong>.
+      </p>
+    </div>
+  </div>
+</div>
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
@@ -1029,9 +1170,24 @@
     <div class="nav-item" onclick="openSector(4)" id="nav-4"><span class="icon"><i data-lucide="users"></i></span> Adm. P&P</div>
     <div class="nav-item" onclick="openSector(5)" id="nav-5"><span class="icon"><i data-lucide="star"></i></span> Customer Success</div>
     <div class="nav-item" onclick="openSector(6)" id="nav-6"><span class="icon"><i data-lucide="cpu"></i></span> Tech & IA</div>
+    <div class="nav-label" id="nav-label-admin" style="display:none;">Administração</div>
+    <div class="nav-item" onclick="showAdmin()" id="nav-admin" style="display:none;">
+      <span class="icon"><i data-lucide="shield"></i></span> Painel Admin
+    </div>
   </nav>
   <div class="sidebar-footer">
+    <div class="sidebar-user" id="sidebar-user" style="display:none;">
+      <div class="user-avatar" id="user-avatar"><i data-lucide="user"></i></div>
+      <div class="user-info">
+        <div class="user-fullname" id="user-fullname">—</div>
+        <div class="user-email-small" id="user-email-small">—</div>
+        <span class="user-admin-badge" id="user-admin-badge" style="display:none;">Admin</span>
+      </div>
+    </div>
     <button class="btn-add-pop" onclick="openModal()">＋ Novo POP</button>
+    <button class="btn-logout" id="btn-logout" onclick="authLogout()" style="display:none;">
+      <i data-lucide="log-out"></i> Sair
+    </button>
   </div>
 </aside>
 
@@ -1077,6 +1233,9 @@
 
       <div class="sectors-grid" id="sectors-grid"></div>
     </div>
+
+    <!-- ADMIN VIEW -->
+    <div class="admin-view" id="admin-view"></div>
 
     <!-- PROCESS VIEW -->
     <div class="process-view" id="process-view">
@@ -1287,6 +1446,7 @@ function updateStats() {
 function showHome() {
   document.getElementById('home-view').classList.remove('hidden');
   document.getElementById('process-view').classList.remove('active');
+  document.getElementById('admin-view').classList.remove('active');
   document.getElementById('page-title').textContent = 'Central de POPs';
   document.getElementById('page-sub').textContent = 'Todos os processos operacionais padrão da empresa';
   currentSector = null;
@@ -1297,6 +1457,7 @@ function showHome() {
 }
 
 function openSector(i) {
+  document.getElementById('admin-view').classList.remove('active');
   currentSector = i;
   const s = SECTORS[i];
   document.getElementById('home-view').classList.add('hidden');
@@ -1846,6 +2007,260 @@ Responda sempre em português do Brasil. Seja conciso (máx. 4 parágrafos curto
   };
 
 })(); // fim IIFE do chat
+
+/* ══════════════════════════════════════════════════════════
+   AUTH — Google Sign-In + Admin Panel
+══════════════════════════════════════════════════════════ */
+(function () {
+  const KEY_SESSION   = 'v4_auth_session';
+  const KEY_CLIENT_ID = 'v4_google_client_id';
+  const ADMIN_EMAIL   = 'adriano@v4company.com';
+  const ALLOWED_DOMAIN = 'v4company.com';
+
+  // ── Helpers ─────────────────────────────────────────────
+  function getSession() {
+    try { return JSON.parse(localStorage.getItem(KEY_SESSION) || 'null'); }
+    catch(e) { return null; }
+  }
+
+  function parseJwt(token) {
+    try {
+      const b64 = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+      return JSON.parse(atob(b64));
+    } catch(e) { return null; }
+  }
+
+  function escH(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Startup ──────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', function () {
+    const session = getSession();
+    if (session && session.email) {
+      enterApp(session);
+    } else {
+      startLoginFlow();
+    }
+  });
+
+  function startLoginFlow() {
+    const clientId = localStorage.getItem(KEY_CLIENT_ID) || '';
+    if (!clientId) {
+      // Mostra form de configuração do Client ID
+      document.getElementById('login-setup').style.display = 'flex';
+      document.getElementById('login-setup').style.flexDirection = 'column';
+      return;
+    }
+    waitForGoogle(function () {
+      google.accounts.id.initialize({
+        client_id: clientId,
+        callback: handleCredential,
+        auto_select: false,
+        cancel_on_tap_outside: false,
+        ux_mode: 'popup',
+      });
+      google.accounts.id.renderButton(
+        document.getElementById('login-google-btn'),
+        { theme: 'filled_black', size: 'large', width: 280, text: 'signin_with', shape: 'rectangular' }
+      );
+    });
+  }
+
+  function waitForGoogle(cb, n) {
+    n = n || 0;
+    if (typeof google !== 'undefined' && google.accounts) { cb(); return; }
+    if (n < 40) { setTimeout(function () { waitForGoogle(cb, n + 1); }, 250); }
+    else { showLoginError('Não foi possível carregar o Google Sign-In. Verifique sua conexão e recarregue a página.'); }
+  }
+
+  // ── Credential callback ──────────────────────────────────
+  function handleCredential(resp) {
+    const payload = parseJwt(resp.credential);
+    if (!payload) { showLoginError('Erro ao processar credencial. Tente novamente.'); return; }
+
+    const email = (payload.email || '').toLowerCase();
+    if (!email.endsWith('@' + ALLOWED_DOMAIN)) {
+      showLoginError('Conta "' + escH(payload.email) + '" não autorizada. Use seu e-mail @' + ALLOWED_DOMAIN + '.');
+      google.accounts.id.disableAutoSelect();
+      return;
+    }
+
+    const session = {
+      email:   payload.email,
+      name:    payload.name    || email.split('@')[0],
+      picture: payload.picture || '',
+      isAdmin: email === ADMIN_EMAIL.toLowerCase(),
+    };
+    localStorage.setItem(KEY_SESSION, JSON.stringify(session));
+    enterApp(session);
+  }
+
+  function showLoginError(msg) {
+    const el = document.getElementById('login-error');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.toggle('show', !!msg);
+  }
+
+  // ── Entrar no app ────────────────────────────────────────
+  function enterApp(session) {
+    document.getElementById('login-screen').classList.add('hidden');
+    updateSidebarUser(session);
+    lucide.createIcons();
+  }
+
+  function updateSidebarUser(session) {
+    // Avatar
+    const av = document.getElementById('user-avatar');
+    if (session.picture) {
+      av.innerHTML = '<img src="' + escH(session.picture) + '" alt="" />';
+    }
+    // Texto
+    document.getElementById('user-fullname').textContent  = session.name;
+    document.getElementById('user-email-small').textContent = session.email;
+    // Admin badge + nav
+    if (session.isAdmin) {
+      document.getElementById('user-admin-badge').style.display = 'inline-block';
+      document.getElementById('nav-label-admin').style.display  = '';
+      document.getElementById('nav-admin').style.display        = 'flex';
+    }
+    // Mostrar elementos
+    document.getElementById('sidebar-user').style.display = 'flex';
+    document.getElementById('btn-logout').style.display   = 'flex';
+  }
+
+  // ── Salvar Client ID (setup inicial) ─────────────────────
+  window.authSaveClientId = function () {
+    const val = (document.getElementById('setup-client-id')?.value || '').trim();
+    if (!val) { alert('Cole o Client ID do Google.'); return; }
+    localStorage.setItem(KEY_CLIENT_ID, val);
+    document.getElementById('login-setup').style.display = 'none';
+    startLoginFlow();
+  };
+
+  // ── Logout ───────────────────────────────────────────────
+  window.authLogout = function () {
+    if (!confirm('Deseja sair da sua conta?')) return;
+    localStorage.removeItem(KEY_SESSION);
+    if (typeof google !== 'undefined' && google.accounts) {
+      google.accounts.id.disableAutoSelect();
+    }
+    location.reload();
+  };
+
+  // ── Painel Admin ─────────────────────────────────────────
+  window.showAdmin = function () {
+    document.getElementById('home-view').classList.add('hidden');
+    document.getElementById('process-view').classList.remove('active');
+    document.getElementById('admin-view').classList.add('active');
+    document.getElementById('page-title').textContent = 'Painel Administrativo';
+    document.getElementById('page-sub').textContent   = 'Configurações e gerenciamento';
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('nav-admin').classList.add('active');
+    renderAdminPanel();
+  };
+
+  function renderAdminPanel() {
+    const view   = document.getElementById('admin-view');
+    const gId    = localStorage.getItem(KEY_CLIENT_ID)   || '';
+    const gemKey = localStorage.getItem('v4_gemini_key') || '';
+
+    const tableRows = pops.length
+      ? pops.map(function (p, i) {
+          return '<tr>'
+            + '<td>' + escH(p.name) + '</td>'
+            + '<td class="td-muted">' + escH(SECTORS[p.sector]?.name || '—') + '</td>'
+            + '<td class="td-muted">' + escH(p.author || '—') + '</td>'
+            + '<td class="td-muted">' + escH(p.date) + '</td>'
+            + '<td class="td-link"><a href="' + escH(p.link) + '" target="_blank" rel="noopener"><i data-lucide="external-link"></i> Abrir</a></td>'
+            + '<td><div class="td-actions">'
+            + '<button class="pop-card-edit" title="Editar" onclick="adminEditPop(' + i + ')"><i data-lucide="pencil"></i></button>'
+            + '<button class="pop-card-delete" title="Excluir" onclick="adminDeletePop(' + i + ')"><i data-lucide="trash-2"></i></button>'
+            + '</div></td>'
+            + '</tr>';
+        }).join('')
+      : '<tr><td colspan="6" class="admin-empty">Nenhum POP cadastrado ainda.</td></tr>';
+
+    view.innerHTML =
+      // Stats
+      '<div class="admin-section">'
+      + '<div class="admin-section-header"><i data-lucide="bar-chart-2"></i> Visão Geral</div>'
+      + '<div class="admin-stats-grid">'
+      + '<div class="admin-stat accent"><div class="as-label">Total de POPs</div><div class="as-value">' + pops.length + '</div></div>'
+      + '<div class="admin-stat"><div class="as-label">Setores utilizados</div><div class="as-value">' + new Set(pops.map(function(p){return p.sector;})).size + '</div></div>'
+      + '<div class="admin-stat"><div class="as-label">Setores disponíveis</div><div class="as-value">7</div></div>'
+      + '</div></div>'
+
+      // Configurações
+      + '<div class="admin-section">'
+      + '<div class="admin-section-header"><i data-lucide="settings"></i> Configurações do Sistema</div>'
+      + '<div style="margin-bottom:16px;">'
+      + '<div class="form-label" style="margin-bottom:6px;">Google OAuth Client ID</div>'
+      + '<div class="admin-key-row">'
+      + '<input type="text" id="admin-gid" value="' + escH(gId) + '" placeholder="000000000000-xxxx.apps.googleusercontent.com" autocomplete="off" />'
+      + '<button class="btn-sm" onclick="adminSaveGoogleId()">Salvar</button>'
+      + '</div>'
+      + '<div class="admin-key-hint ' + (gId ? 'ok' : '') + '">' + (gId ? '✓ Client ID configurado' : 'Não configurado — necessário para o login') + '</div>'
+      + '</div>'
+      + '<div>'
+      + '<div class="form-label" style="margin-bottom:6px;">Gemini API Key</div>'
+      + '<div class="admin-key-row">'
+      + '<input type="password" id="admin-gemkey" value="' + escH(gemKey) + '" placeholder="AIzaSy..." autocomplete="off" />'
+      + '<button class="btn-sm" onclick="adminSaveGemKey()">Salvar</button>'
+      + '</div>'
+      + '<div class="admin-key-hint ' + (gemKey ? 'ok' : '') + '">' + (gemKey ? '✓ Chave configurada' : 'Não configurada — necessária para o chat IA') + '</div>'
+      + '</div></div>'
+
+      // Tabela de POPs
+      + '<div class="admin-section">'
+      + '<div class="admin-section-header"><i data-lucide="list"></i> Todos os POPs <span style="font-weight:400;color:var(--gray-text);font-size:12px;margin-left:4px;">(' + pops.length + ')</span></div>'
+      + '<div class="admin-table-wrap"><table class="admin-table">'
+      + '<thead><tr><th>Nome</th><th>Setor</th><th>Autor</th><th>Data</th><th>Link</th><th>Ações</th></tr></thead>'
+      + '<tbody>' + tableRows + '</tbody>'
+      + '</table></div></div>';
+
+    lucide.createIcons();
+  }
+
+  window.adminSaveGoogleId = function () {
+    const val = (document.getElementById('admin-gid')?.value || '').trim();
+    localStorage.setItem(KEY_CLIENT_ID, val);
+    renderAdminPanel();
+    showToast('<i data-lucide="check"></i> Client ID salvo!');
+  };
+
+  window.adminSaveGemKey = function () {
+    const val = (document.getElementById('admin-gemkey')?.value || '').trim();
+    localStorage.setItem('v4_gemini_key', val);
+    renderAdminPanel();
+    showToast('<i data-lucide="check"></i> Gemini API Key salva!');
+  };
+
+  window.adminEditPop = function (i) {
+    editPop(i);
+    // Após fechar modal, recarregar painel admin
+    const origClose = window.closeModal;
+    window.closeModal = function () {
+      origClose();
+      window.closeModal = origClose;
+      // Se ainda estamos no admin, re-renderiza
+      if (document.getElementById('admin-view').classList.contains('active')) {
+        renderAdminPanel();
+      }
+    };
+  };
+
+  window.adminDeletePop = function (i) {
+    if (!confirm('Excluir o POP "' + escH(pops[i]?.name) + '"?')) return;
+    pops.splice(i, 1);
+    savePops();
+    updateStats();
+    renderAdminPanel();
+  };
+
+})(); // fim IIFE auth
 </script>
 </body>
 </html>
