@@ -1688,14 +1688,14 @@ function handleSearch() {
 init();
 
 /* ══════════════════════════════════════════════════════════
-   CHAT — Assistente de POPs  (Gemini 1.5 Flash)
+   CHAT — Assistente de POPs  (OpenAI)
 ══════════════════════════════════════════════════════════ */
 (function () {
 
   // ── Chaves de storage ───────────────────────────────────
   const KEY_NAME    = 'v4_chat_username';
   const KEY_HISTORY = 'v4_chat_history';
-  const KEY_APIKEY  = 'v4_gemini_key';
+  const KEY_APIKEY  = 'v4_openai_key';
 
   // ── Estado ──────────────────────────────────────────────
   let chatOpen       = false;
@@ -1773,13 +1773,13 @@ Responda sempre em português do Brasil. Seja conciso (máx. 4 parágrafos curto
       <div class="chat-screen">
         <div class="cs-icon"><i data-lucide="key"></i></div>
         <h4>Configure a API Key</h4>
-        <p>Para usar o Assistente de POPs, insira sua chave da API do Google Gemini.</p>
+        <p>Para usar o Assistente de POPs, insira sua chave da API da OpenAI.</p>
         <input class="cs-input" id="cs-key-input" type="password"
-          placeholder="AIzaSy..." autocomplete="off"
+          placeholder="sk-..." autocomplete="off"
           value="${localStorage.getItem(KEY_APIKEY) || ''}" />
         <button class="cs-btn" onclick="chatSaveApiKey()">Salvar e continuar</button>
         <p class="cs-note">
-          Obtenha sua chave em <code>aistudio.google.com</code> → "Get API Key".<br>
+          Obtenha sua chave em <code>platform.openai.com</code> → "API keys".<br>
           A chave é salva apenas no seu navegador (localStorage).
         </p>
         ${fromConfig && chatUserName ? `<button class="cs-link" onclick="chatCancelConfig()">← Voltar ao chat</button>` : ''}
@@ -1927,7 +1927,7 @@ Responda sempre em português do Brasil. Seja conciso (máx. 4 parágrafos curto
     list.scrollTop = list.scrollHeight;
 
     try {
-      const reply = await callGemini(text);
+      const reply = await callOpenAI(text);
       typingEl.remove();
       const aiMsg = { role: 'ai', text: reply, time };
       chatMessages.push(aiMsg);
@@ -1948,55 +1948,54 @@ Responda sempre em português do Brasil. Seja conciso (máx. 4 parágrafos curto
     ta.focus();
   };
 
-  // ── Chamada Gemini API ───────────────────────────────────
-  async function callGemini(userText) {
+  // ── Chamada OpenAI API ───────────────────────────────────
+  async function callOpenAI(userText) {
     const apiKey = localStorage.getItem(KEY_APIKEY) || '';
     if (!apiKey) throw new Error('API Key não configurada.');
 
-    // Monta contexto: system prompt + últimas 10 mensagens + nova pergunta
-    const history = chatMessages.slice(-11, -1); // exclui a msg recém-adicionada
-    const contents = [];
-
-    // Gemini não tem "system" role — injetamos no primeiro user turn
-    const systemTurn = SYSTEM_PROMPT + '\n\n---\nPOPs cadastrados no sistema: '
+    const systemContent = SYSTEM_PROMPT + '\n\n---\nPOPs cadastrados no sistema: '
       + (pops.length
           ? pops.map(p => `"${p.name}" (${SECTORS[p.sector]?.name || 'Setor'})`).join(', ')
           : 'nenhum cadastrado ainda.');
 
-    contents.push({ role: 'user', parts: [{ text: systemTurn }] });
-    contents.push({ role: 'model', parts: [{ text: 'Entendido! Estou pronto para ajudar com os POPs da V4 Company.' }] });
+    const messages = [{ role: 'system', content: systemContent }];
 
+    // Últimas 10 mensagens de contexto (exclui a recém-adicionada)
+    const history = chatMessages.slice(-11, -1);
     history.forEach(m => {
-      contents.push({
-        role: m.role === 'user' ? 'user' : 'model',
-        parts: [{ text: m.text }],
+      messages.push({
+        role: m.role === 'user' ? 'user' : 'assistant',
+        content: m.text,
       });
     });
 
-    contents.push({ role: 'user', parts: [{ text: userText }] });
+    messages.push({ role: 'user', content: userText });
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-    const res = await fetch(url, {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
       body: JSON.stringify({
-        contents,
-        generationConfig: { temperature: 0.7, maxOutputTokens: 600 },
+        model: 'gpt-4o-mini',
+        messages,
+        temperature: 0.7,
+        max_tokens: 600,
       }),
     });
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       const msg = err?.error?.message || `HTTP ${res.status}`;
-      // Chave inválida: mostrar configuração
-      if (res.status === 400 || res.status === 403) {
+      if (res.status === 401 || res.status === 403) {
         setTimeout(() => chatShowApiSetup(true), 400);
       }
       throw new Error(msg);
     }
 
     const data = await res.json();
-    return data?.candidates?.[0]?.content?.parts?.[0]?.text
+    return data?.choices?.[0]?.message?.content
       || 'Não consegui gerar uma resposta. Por favor, tente novamente.';
   }
 
@@ -2240,7 +2239,7 @@ Responda sempre em português do Brasil. Seja conciso (máx. 4 parágrafos curto
   function renderAdminPanel(fbUsers, fbLog) {
     const view   = document.getElementById('admin-view');
     const gId    = localStorage.getItem(KEY_CLIENT_ID)   || '';
-    const gemKey = localStorage.getItem('v4_gemini_key') || '';
+    const gemKey = localStorage.getItem('v4_openai_key') || '';
 
     const userCount   = fbUsers ? Object.keys(fbUsers).length : '—';
     const accessCount = fbLog   ? Object.keys(fbLog).length   : '—';
@@ -2305,9 +2304,9 @@ Responda sempre em português do Brasil. Seja conciso (máx. 4 parágrafos curto
       + '<div class="admin-key-hint ' + (gId ? 'ok' : '') + '">' + (gId ? '✓ Client ID configurado' : 'Não configurado — necessário para o login') + '</div>'
       + '</div>'
       + '<div>'
-      + '<div class="form-label" style="margin-bottom:6px;">Gemini API Key</div>'
+      + '<div class="form-label" style="margin-bottom:6px;">OpenAI API Key</div>'
       + '<div class="admin-key-row">'
-      + '<input type="password" id="admin-gemkey" value="' + escH(gemKey) + '" placeholder="AIzaSy..." autocomplete="off" />'
+      + '<input type="password" id="admin-gemkey" value="' + escH(gemKey) + '" placeholder="sk-..." autocomplete="off" />'
       + '<button class="btn-sm" onclick="adminSaveGemKey()">Salvar</button>'
       + '</div>'
       + '<div class="admin-key-hint ' + (gemKey ? 'ok' : '') + '">' + (gemKey ? '✓ Chave configurada' : 'Não configurada — necessária para o chat IA') + '</div>'
@@ -2351,9 +2350,9 @@ Responda sempre em português do Brasil. Seja conciso (máx. 4 parágrafos curto
 
   window.adminSaveGemKey = function () {
     const val = (document.getElementById('admin-gemkey')?.value || '').trim();
-    localStorage.setItem('v4_gemini_key', val);
+    localStorage.setItem('v4_openai_key', val);
     showAdminWithData();
-    showToast('<i data-lucide="check"></i> Gemini API Key salva!');
+    showToast('<i data-lucide="check"></i> OpenAI API Key salva!');
   };
 
   window.adminEditPop = function (i) {
