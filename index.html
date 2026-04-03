@@ -1425,11 +1425,35 @@ let currentSector = null;
 
 function savePops() {
   localStorage.setItem('v4_pops', JSON.stringify(pops));
+  if (window._fbDb) {
+    window._fbDb.ref('pops').set(pops)
+      .catch(function(e) { console.warn('Firebase savePops error:', e); });
+  }
 }
 
 function loadPops() {
   try { pops = JSON.parse(localStorage.getItem('v4_pops') || '[]'); }
   catch(e) { pops = []; }
+}
+
+function syncPopsFromFirebase(callback) {
+  if (!window._fbDb) { if (callback) callback(); return; }
+  window._fbDb.ref('pops').once('value').then(function(snap) {
+    const fbPops = snap.val();
+    if (fbPops && Array.isArray(fbPops) && fbPops.length > 0) {
+      // Firebase tem dados → usa como fonte de verdade
+      pops = fbPops;
+      localStorage.setItem('v4_pops', JSON.stringify(pops));
+    } else if (pops.length > 0) {
+      // Firebase vazio mas localStorage tem dados → sobe para nuvem
+      window._fbDb.ref('pops').set(pops)
+        .catch(function(e) { console.warn('Firebase upload pops error:', e); });
+    }
+    if (callback) callback();
+  }).catch(function(e) {
+    console.warn('Firebase syncPops error:', e);
+    if (callback) callback();
+  });
 }
 
 function init() {
@@ -2117,6 +2141,7 @@ A Central detecta automaticamente o serviço pelo link: Google Drive, OneDrive, 
         firebase.initializeApp(FB_CONFIG);
       }
       fbDb = firebase.database();
+      window._fbDb = fbDb;
     } catch(e) { console.warn('Firebase init error:', e); }
   }
 
@@ -2262,6 +2287,11 @@ A Central detecta automaticamente o serviço pelo link: Google Drive, OneDrive, 
     lucide.createIcons();
     initFirebase();
     logUserAccess(session);
+    syncPopsFromFirebase(function() {
+      renderSectors();
+      updateStats();
+      if (currentSector !== null) renderPopCards();
+    });
   }
 
   function updateSidebarUser(session) {
