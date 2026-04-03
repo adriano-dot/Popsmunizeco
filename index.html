@@ -9,6 +9,7 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <style>
   :root {
     --red: #E8001D;
@@ -2270,6 +2271,14 @@ A Central detecta automaticamente o serviço pelo link: Google Drive, OneDrive, 
       isAdmin: email === ADMIN_EMAIL.toLowerCase(),
     };
     localStorage.setItem(KEY_SESSION, JSON.stringify(session));
+
+    // Autentica no Firebase Auth com o mesmo token Google
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+      const credential = firebase.auth.GoogleAuthProvider.credential(resp.credential);
+      firebase.auth().signInWithCredential(credential)
+        .catch(function(e) { console.warn('Firebase auth error:', e); });
+    }
+
     enterApp(session);
   }
 
@@ -2330,7 +2339,11 @@ A Central detecta automaticamente o serviço pelo link: Google Drive, OneDrive, 
     if (typeof google !== 'undefined' && google.accounts) {
       google.accounts.id.disableAutoSelect();
     }
-    location.reload();
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+      firebase.auth().signOut().finally(function() { location.reload(); });
+    } else {
+      location.reload();
+    }
   };
 
   // ── Painel Admin ─────────────────────────────────────────
