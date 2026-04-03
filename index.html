@@ -605,13 +605,15 @@
     flex-shrink: 0;
   }
   .link-badge svg { width: 19px; height: 19px; }
-  .pop-card-delete {
+  .pop-card-action-group { display: flex; gap: 2px; }
+  .pop-card-delete, .pop-card-edit {
     background: none; border: none; color: var(--gray-text);
-    cursor: pointer; padding: 3px; border-radius: 4px;
-    transition: color 0.2s; line-height: 1;
+    cursor: pointer; padding: 4px; border-radius: 4px;
+    transition: color 0.2s; line-height: 0;
   }
   .pop-card-delete:hover { color: var(--red); }
-  .pop-card-delete svg { width: 14px; height: 14px; }
+  .pop-card-edit:hover   { color: var(--white); }
+  .pop-card-delete svg, .pop-card-edit svg { width: 13px; height: 13px; }
   .pop-card-name { font-size: 14px; font-weight: 600; color: var(--white-pure); line-height: 1.35; }
   .pop-card-sector { font-size: 11px; color: var(--gray-text); }
   .pop-card-footer {
@@ -1100,8 +1102,8 @@
   <div class="modal">
     <div class="modal-header">
       <div>
-        <h3>Novo Processo (POP)</h3>
-        <p>Preencha as informações do processo</p>
+        <h3 id="modal-title">Novo Processo (POP)</h3>
+        <p id="modal-subtitle">Preencha as informações do processo</p>
       </div>
       <button class="modal-close" onclick="closeModal()"><i data-lucide="x"></i></button>
     </div>
@@ -1337,10 +1339,16 @@ function renderPopCards() {
         <div class="link-badge" style="background:${bg};border:1px solid ${bdr};color:${info.color};">
           <i data-lucide="${info.icon}"></i>
         </div>
-        <button class="pop-card-delete" title="Remover POP"
-          onclick="event.stopPropagation();deletePop(${idx})">
-          <i data-lucide="x"></i>
-        </button>
+        <div class="pop-card-action-group">
+          <button class="pop-card-edit" title="Editar POP"
+            onclick="event.stopPropagation();editPop(${idx})">
+            <i data-lucide="pencil"></i>
+          </button>
+          <button class="pop-card-delete" title="Remover POP"
+            onclick="event.stopPropagation();deletePop(${idx})">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
       </div>
       <div class="pop-card-name">${esc(p.name)}</div>
       <div class="pop-card-sector">${esc(SECTORS[p.sector].name)} · ${esc(p.date)}</div>
@@ -1372,11 +1380,30 @@ function deletePop(i) {
 }
 
 // ── MODAL ───────────────────────────────────────────────────
+let editingIdx = null;
+
 function openModal(sectorIdx) {
+  editingIdx = null;
+  document.getElementById('modal-title').textContent = 'Novo Processo (POP)';
+  document.getElementById('modal-subtitle').textContent = 'Preencha as informações do processo';
   document.getElementById('modal-overlay').classList.add('open');
   if (sectorIdx !== undefined && sectorIdx !== null) {
     document.getElementById('f-sector').value = sectorIdx;
   }
+  lucide.createIcons();
+}
+
+function editPop(i) {
+  const p = pops[i];
+  editingIdx = i;
+  document.getElementById('modal-title').textContent = 'Editar Processo (POP)';
+  document.getElementById('modal-subtitle').textContent = 'Altere as informações e salve';
+  document.getElementById('modal-overlay').classList.add('open');
+  document.getElementById('f-name').value   = p.name;
+  document.getElementById('f-sector').value = p.sector;
+  document.getElementById('f-author').value = p.author || '';
+  document.getElementById('f-link').value   = p.link;
+  updateLinkPreview(p.link);
   lucide.createIcons();
 }
 
@@ -1390,6 +1417,9 @@ function closeModalOutside(e) {
 }
 
 function resetModal() {
+  editingIdx = null;
+  document.getElementById('modal-title').textContent = 'Novo Processo (POP)';
+  document.getElementById('modal-subtitle').textContent = 'Preencha as informações do processo';
   document.getElementById('f-name').value = '';
   document.getElementById('f-sector').value = '';
   document.getElementById('f-author').value = '';
@@ -1419,14 +1449,27 @@ function savePop() {
   if (!sector) { alert('Selecione o setor.'); return; }
   if (!link)   { alert('Informe o link do arquivo.'); return; }
   const author = document.getElementById('f-author').value.trim();
-  const date = new Date().toLocaleDateString('pt-BR');
-  pops.push({ name, sector: parseInt(sector), author, link, date });
-  savePops();
-  closeModal();
-  updateStats();
-  renderSectors();
-  if (currentSector !== null && currentSector == parseInt(sector)) renderPopCards();
-  showToast('<i data-lucide="check"></i> POP salvo com sucesso!');
+
+  if (editingIdx !== null) {
+    // Modo edição — preserva a data original
+    pops[editingIdx] = { ...pops[editingIdx], name, sector: parseInt(sector), author, link };
+    savePops();
+    closeModal();
+    updateStats();
+    renderSectors();
+    if (currentSector !== null) renderPopCards();
+    showToast('<i data-lucide="check"></i> POP atualizado com sucesso!');
+  } else {
+    // Modo criação
+    const date = new Date().toLocaleDateString('pt-BR');
+    pops.push({ name, sector: parseInt(sector), author, link, date });
+    savePops();
+    closeModal();
+    updateStats();
+    renderSectors();
+    if (currentSector !== null && currentSector == parseInt(sector)) renderPopCards();
+    showToast('<i data-lucide="check"></i> POP salvo com sucesso!');
+  }
 }
 
 function showToast(msg) {
