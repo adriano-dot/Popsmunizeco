@@ -6,7 +6,6 @@
 <title>Central de POPs — V4 Company</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -1075,7 +1074,13 @@
   .login-brand-sub { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--gray-text); margin-bottom: 28px; }
   .login-card h2 { font-size: 18px; font-weight: 700; color: var(--white-pure); margin-bottom: 6px; }
   .login-desc { font-size: 12px; color: var(--gray-text); line-height: 1.5; margin-bottom: 28px; }
-  .login-google-wrap { width: 100%; display: flex; justify-content: center; min-height: 44px; margin-bottom: 8px; }
+  .login-google-btn {
+    width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
+    background: #fff; color: #3c3c3c; border: none; border-radius: 4px;
+    padding: 11px 16px; font-size: 14px; font-weight: 500; font-family: 'Montserrat', sans-serif;
+    cursor: pointer; margin-bottom: 8px; transition: box-shadow 0.2s;
+  }
+  .login-google-btn:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.35); }
   .login-error {
     font-size: 12px; color: var(--red);
     background: rgba(232,0,29,0.08); border: 1px solid rgba(232,0,29,0.2);
@@ -1180,24 +1185,11 @@
     <div class="login-brand-sub">Central de POPs</div>
     <h2>Entrar</h2>
     <p class="login-desc">Acesso exclusivo para investidores<br><strong>@v4company.com</strong></p>
-    <div class="login-google-wrap" id="login-google-btn"></div>
+    <button class="login-google-btn" id="login-google-btn" onclick="authSignIn()">
+      <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
+      Entrar com Google
+    </button>
     <div class="login-error" id="login-error"></div>
-    <!-- Setup do Client ID — exibido quando não configurado -->
-    <div class="login-setup" id="login-setup" style="display:none;">
-      <div class="login-divider"></div>
-      <label class="form-label" style="width:100%;">Google OAuth Client ID</label>
-      <div class="login-setup-row">
-        <input class="form-input" id="setup-client-id" type="text"
-          placeholder="000000000000-xxxx.apps.googleusercontent.com" autocomplete="off"
-          onkeydown="if(event.key==='Enter')authSaveClientId()" />
-        <button class="btn-save" onclick="authSaveClientId()">Salvar</button>
-      </div>
-      <p class="login-setup-note">
-        Acesse <code>console.cloud.google.com</code> → APIs &amp; Serviços → Credenciais →
-        Criar ID do cliente OAuth 2.0 (tipo: Aplicativo da Web).
-        Adicione a URL desta página nas <strong>Origens autorizadas</strong>.
-      </p>
-    </div>
   </div>
 </div>
 
@@ -2205,7 +2197,6 @@ A Central detecta automaticamente o serviço pelo link: Google Drive, OneDrive, 
 ══════════════════════════════════════════════════════════ */
 (function () {
   const KEY_SESSION   = 'v4_auth_session';
-  const KEY_CLIENT_ID = 'v4_google_client_id';
   const ADMIN_EMAIL   = 'adriano@v4company.com';
   const ALLOWED_DOMAIN = 'v4company.com';
 
@@ -2316,12 +2307,6 @@ A Central detecta automaticamente o serviço pelo link: Google Drive, OneDrive, 
     catch(e) { return null; }
   }
 
-  function parseJwt(token) {
-    try {
-      const b64 = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
-      return JSON.parse(atob(b64));
-    } catch(e) { return null; }
-  }
 
   function escH(s) {
     return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
@@ -2339,64 +2324,46 @@ A Central detecta automaticamente o serviço pelo link: Google Drive, OneDrive, 
   });
 
   function startLoginFlow() {
-    const clientId = localStorage.getItem(KEY_CLIENT_ID) || '';
-    if (!clientId) {
-      // Mostra form de configuração do Client ID
-      document.getElementById('login-setup').style.display = 'flex';
-      document.getElementById('login-setup').style.flexDirection = 'column';
+    initFirebase();
+    // botão já está no HTML, nada a fazer aqui
+  }
+
+  // ── Login com popup Google via Firebase ──────────────────
+  window.authSignIn = function () {
+    if (typeof firebase === 'undefined' || !firebase.auth) {
+      showLoginError('Firebase não carregado. Recarregue a página.');
       return;
     }
-    waitForGoogle(function () {
-      google.accounts.id.initialize({
-        client_id: clientId,
-        callback: handleCredential,
-        auto_select: false,
-        cancel_on_tap_outside: false,
-        ux_mode: 'popup',
-      });
-      google.accounts.id.renderButton(
-        document.getElementById('login-google-btn'),
-        { theme: 'filled_black', size: 'large', width: 280, text: 'signin_with', shape: 'rectangular' }
-      );
+    const btn = document.getElementById('login-google-btn');
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.7'; }
+
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ hd: ALLOWED_DOMAIN });
+
+    firebase.auth().signInWithPopup(provider).then(function(result) {
+      const user  = result.user;
+      const email = (user.email || '').toLowerCase();
+      if (!email.endsWith('@' + ALLOWED_DOMAIN)) {
+        showLoginError('Conta "' + escH(user.email) + '" não autorizada. Use seu e-mail @' + ALLOWED_DOMAIN + '.');
+        firebase.auth().signOut();
+        if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+        return;
+      }
+      const session = {
+        email:   user.email,
+        name:    user.displayName || email.split('@')[0],
+        picture: user.photoURL    || '',
+        isAdmin: email === ADMIN_EMAIL.toLowerCase(),
+      };
+      localStorage.setItem(KEY_SESSION, JSON.stringify(session));
+      enterApp(session);
+    }).catch(function(e) {
+      if (e.code !== 'auth/popup-closed-by-user') {
+        showLoginError('Erro ao entrar: ' + e.message);
+      }
+      if (btn) { btn.disabled = false; btn.style.opacity = ''; }
     });
-  }
-
-  function waitForGoogle(cb, n) {
-    n = n || 0;
-    if (typeof google !== 'undefined' && google.accounts) { cb(); return; }
-    if (n < 40) { setTimeout(function () { waitForGoogle(cb, n + 1); }, 250); }
-    else { showLoginError('Não foi possível carregar o Google Sign-In. Verifique sua conexão e recarregue a página.'); }
-  }
-
-  // ── Credential callback ──────────────────────────────────
-  function handleCredential(resp) {
-    const payload = parseJwt(resp.credential);
-    if (!payload) { showLoginError('Erro ao processar credencial. Tente novamente.'); return; }
-
-    const email = (payload.email || '').toLowerCase();
-    if (!email.endsWith('@' + ALLOWED_DOMAIN)) {
-      showLoginError('Conta "' + escH(payload.email) + '" não autorizada. Use seu e-mail @' + ALLOWED_DOMAIN + '.');
-      google.accounts.id.disableAutoSelect();
-      return;
-    }
-
-    const session = {
-      email:   payload.email,
-      name:    payload.name    || email.split('@')[0],
-      picture: payload.picture || '',
-      isAdmin: email === ADMIN_EMAIL.toLowerCase(),
-    };
-    localStorage.setItem(KEY_SESSION, JSON.stringify(session));
-
-    // Autentica no Firebase Auth com o mesmo token Google
-    if (typeof firebase !== 'undefined' && firebase.auth) {
-      const credential = firebase.auth.GoogleAuthProvider.credential(resp.credential);
-      firebase.auth().signInWithCredential(credential)
-        .catch(function(e) { console.warn('Firebase auth error:', e); });
-    }
-
-    enterApp(session);
-  }
+  };
 
   function showLoginError(msg) {
     const el = document.getElementById('login-error');
@@ -2442,14 +2409,6 @@ A Central detecta automaticamente o serviço pelo link: Google Drive, OneDrive, 
     document.getElementById('btn-logout').style.display   = 'flex';
   }
 
-  // ── Salvar Client ID (setup inicial) ─────────────────────
-  window.authSaveClientId = function () {
-    const val = (document.getElementById('setup-client-id')?.value || '').trim();
-    if (!val) { alert('Cole o Client ID do Google.'); return; }
-    localStorage.setItem(KEY_CLIENT_ID, val);
-    document.getElementById('login-setup').style.display = 'none';
-    startLoginFlow();
-  };
 
   // ── Logout ───────────────────────────────────────────────
   window.authLogout = function () {
@@ -2479,7 +2438,6 @@ A Central detecta automaticamente o serviço pelo link: Google Drive, OneDrive, 
 
   function renderAdminPanel(fbUsers, fbLog, fbPopsLog) {
     const view   = document.getElementById('admin-view');
-    const gId    = localStorage.getItem(KEY_CLIENT_ID)   || '';
     const gemKey = localStorage.getItem('v4_openai_key') || '';
 
     const userCount   = fbUsers ? Object.keys(fbUsers).length : '—';
@@ -2549,14 +2507,6 @@ A Central detecta automaticamente o serviço pelo link: Google Drive, OneDrive, 
       // Configurações
       + '<div class="admin-section">'
       + '<div class="admin-section-header"><i data-lucide="settings"></i> Configurações do Sistema</div>'
-      + '<div style="margin-bottom:16px;">'
-      + '<div class="form-label" style="margin-bottom:6px;">Google OAuth Client ID</div>'
-      + '<div class="admin-key-row">'
-      + '<input type="text" id="admin-gid" value="' + escH(gId) + '" placeholder="000000000000-xxxx.apps.googleusercontent.com" autocomplete="off" />'
-      + '<button class="btn-sm" onclick="adminSaveGoogleId()">Salvar</button>'
-      + '</div>'
-      + '<div class="admin-key-hint ' + (gId ? 'ok' : '') + '">' + (gId ? '✓ Client ID configurado' : 'Não configurado — necessário para o login') + '</div>'
-      + '</div>'
       + '<div>'
       + '<div class="form-label" style="margin-bottom:6px;">OpenAI API Key</div>'
       + '<div class="admin-key-row">'
@@ -2618,13 +2568,6 @@ A Central detecta automaticamente o serviço pelo link: Google Drive, OneDrive, 
       renderAdminPanel(null, null, null);
     }
   }
-
-  window.adminSaveGoogleId = function () {
-    const val = (document.getElementById('admin-gid')?.value || '').trim();
-    localStorage.setItem(KEY_CLIENT_ID, val);
-    showAdminWithData();
-    showToast('<i data-lucide="check"></i> Client ID salvo!');
-  };
 
   window.adminSaveGemKey = function () {
     const val = (document.getElementById('admin-gemkey')?.value || '').trim();
