@@ -1485,8 +1485,14 @@ function startPopsListener() {
         pops = fbPops;
         localStorage.setItem('v4_pops', JSON.stringify(pops));
       } else if (fbPops === null) {
-        pops = [];
-        localStorage.setItem('v4_pops', '[]');
+        if (pops.length > 0) {
+          // Firebase retornou null mas temos dados locais: restaura no Firebase
+          // (protege contra null transitório durante troca de estado de auth)
+          window._fbDb.ref('pops').set(pops).catch(function(e){ console.warn(e); });
+        } else {
+          pops = [];
+          localStorage.setItem('v4_pops', '[]');
+        }
       }
     }
     renderSectors();
@@ -2380,13 +2386,32 @@ A Central detecta automaticamente o serviço pelo link: Google Drive, OneDrive, 
     lucide.createIcons();
     initFirebase();
     logUserAccess(session);
-    loadUserRole(session, function() {
-      // Mostra/esconde botão de novo POP conforme role
-      const canEdit = window._userRole === 'admin' || window._userRole === 'editor';
-      const btnAdd = document.getElementById('btn-add-pop');
-      if (btnAdd) btnAdd.style.display = canEdit ? '' : 'none';
-      startPopsListener();
-    });
+
+    function continueSetup() {
+      loadUserRole(session, function() {
+        // Mostra/esconde botão de novo POP conforme role
+        const canEdit = window._userRole === 'admin' || window._userRole === 'editor';
+        const btnAdd = document.getElementById('btn-add-pop');
+        if (btnAdd) btnAdd.style.display = canEdit ? '' : 'none';
+        startPopsListener();
+      });
+    }
+
+    // Aguarda Firebase Auth confirmar o token antes de iniciar o listener de POPs.
+    // Sem isso, reads/writes falham silenciosamente (regras auth != null)
+    // quando o usuário entra via sessão salva no localStorage.
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+      if (firebase.auth().currentUser) {
+        continueSetup();
+      } else {
+        const unsub = firebase.auth().onAuthStateChanged(function() {
+          unsub();
+          continueSetup();
+        });
+      }
+    } else {
+      continueSetup();
+    }
   }
 
   function updateSidebarUser(session) {
