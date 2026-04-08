@@ -1174,6 +1174,44 @@
   .admin-table .td-link a:hover { text-decoration: underline; }
   .admin-table .td-link svg, .admin-table .td-actions svg { width: 12px; height: 12px; }
   .admin-empty { text-align: center; padding: 30px; color: var(--gray-text); font-size: 13px; }
+
+/* ===== GERENCIAMENTO DE SETORES ===== */
+.sector-mgmt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:16px}
+.sector-mgmt-card{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:14px;display:flex;align-items:center;gap:12px;transition:border-color .2s}
+.sector-mgmt-card:hover{border-color:#444}
+.sector-mgmt-card.is-custom{border-color:#e02020}
+.sector-mgmt-icon{width:36px;height:36px;background:#2a2a2a;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#e02020;flex-shrink:0}
+.sector-mgmt-info{flex:1;min-width:0}
+.sector-mgmt-name{font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sector-mgmt-sub{font-size:11px;color:#888;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sector-mgmt-badge{font-size:10px;background:#2a2a2a;color:#aaa;border-radius:4px;padding:2px 6px;margin-top:4px;display:inline-block}
+.sector-mgmt-actions{display:flex;flex-direction:column;gap:4px;flex-shrink:0}
+.sector-mgmt-btn{background:#2a2a2a;border:none;border-radius:6px;color:#aaa;cursor:pointer;padding:5px 7px;font-size:11px;transition:background .2s,color .2s;display:flex;align-items:center;gap:4px}
+.sector-mgmt-btn:hover{background:#3a3a3a;color:#fff}
+.sector-mgmt-btn.delete:hover{background:#3a1010;color:#e05050}
+.sector-mgmt-btn.disabled-btn{opacity:.4;cursor:not-allowed;pointer-events:none}
+.sector-add-btn{background:transparent;border:1px dashed #444;border-radius:10px;padding:14px;display:flex;align-items:center;justify-content:center;gap:8px;color:#888;cursor:pointer;font-size:13px;font-weight:500;transition:border-color .2s,color .2s;min-height:72px}
+.sector-add-btn:hover{border-color:#e02020;color:#e02020}
+.sector-tag-custom{font-size:10px;background:#3a0808;color:#e05050;border-radius:4px;padding:2px 6px;margin-left:6px}
+#sector-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center}
+#sector-modal-overlay.open{display:flex}
+#sector-modal{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:16px;padding:28px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto}
+#sector-modal h2{font-size:18px;font-weight:700;color:#fff;margin:0 0 6px 0}
+#sector-modal .modal-sub{font-size:13px;color:#888;margin-bottom:24px}
+.sector-form-group{margin-bottom:18px}
+.sector-form-label{display:block;font-size:12px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.sector-form-input{width:100%;background:#111;border:1px solid #2a2a2a;border-radius:8px;color:#fff;font-size:14px;padding:10px 12px;box-sizing:border-box;outline:none;transition:border-color .2s}
+.sector-form-input:focus{border-color:#e02020}
+.sector-icon-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;max-height:180px;overflow-y:auto;padding:4px}
+.sector-icon-option{width:36px;height:36px;border-radius:8px;background:#111;border:1.5px solid #2a2a2a;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#aaa;transition:all .2s}
+.sector-icon-option:hover,.sector-icon-option.selected{border-color:#e02020;background:#1e0808;color:#e02020}
+.sector-modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:24px;padding-top:18px;border-top:1px solid #2a2a2a}
+.sector-modal-footer button{padding:10px 22px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:background .2s}
+.sector-btn-cancel{background:#2a2a2a;color:#aaa}
+.sector-btn-cancel:hover{background:#333}
+.sector-btn-save{background:#e02020;color:#fff}
+.sector-btn-save:hover{background:#c01010}
+
 </style>
 </head>
 <body>
@@ -2517,6 +2555,182 @@ A Central detecta automaticamente o serviço pelo link: Google Drive, OneDrive, 
       + '</div></div>'
 
       // Tabela de usuários
+      + '      <!-- GERENCIAR SETORES -->
+      <div class="admin-section" id="admin-sectors-section">
+        <div class="admin-section-header">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+          Gerenciar Setores
+          <span id="sector-count-admin" style="font-size:12px;font-weight:400;color:#888;margin-left:6px"></span>
+        </div>
+        <div class="sector-mgmt-grid" id="sector-mgmt-grid"></div>
+      </div>
+
+
+  function renderAdminPanel(fbUsers, fbLog, fbPopsLog) {
+    const view   = document.getElementById('admin-view');
+    const gemKey = localStorage.getItem('v4_openai_key') || '';
+
+    const userCount   = fbUsers ? Object.keys(fbUsers).length : '—';
+    const accessCount = fbLog   ? Object.keys(fbLog).length   : '—';
+
+    const tableRows = pops.length
+      ? pops.map(function (p, i) {
+          return '<tr>'
+            + '<td>' + escH(p.name) + '</td>'
+            + '<td class="td-muted">' + escH(SECTORS[p.sector]?.name || '—') + '</td>'
+            + '<td class="td-muted">' + escH(p.author || '—') + '</td>'
+            + '<td class="td-muted">' + escH(p.date) + '</td>'
+            + '<td class="td-link"><a href="' + escH(p.link) + '" target="_blank" rel="noopener"><i data-lucide="external-link"></i> Abrir</a></td>'
+            + '<td><div class="td-actions">'
+            + '<button class="pop-card-edit" title="Editar" onclick="adminEditPop(' + i + ')"><i data-lucide="pencil"></i></button>'
+            + '<button class="pop-card-delete" title="Excluir" onclick="adminDeletePop(' + i + ')"><i data-lucide="trash-2"></i></button>'
+            + '</div></td>'
+            + '</tr>';
+        }).join('')
+      : '<tr><td colspan="6" class="admin-empty">Nenhum POP cadastrado ainda.</td></tr>';
+
+    // Tabela de usuários Firebase
+    let usersRows = '<tr><td colspan="5" class="admin-empty">Nenhum usuário registrado ainda.</td></tr>';
+    if (fbUsers) {
+      const arr = Object.values(fbUsers).sort(function(a, b) {
+        return (b.lastAccess || 0) - (a.lastAccess || 0);
+      });
+      usersRows = arr.map(function(u) {
+        const avatar = u.picture
+          ? '<img src="' + escH(u.picture) + '" style="width:28px;height:28px;border-radius:50%;vertical-align:middle;margin-right:8px;" />'
+          : '<span style="display:inline-block;width:28px;height:28px;border-radius:50%;background:var(--red);margin-right:8px;vertical-align:middle;"></span>';
+        const role = u.role || 'viewer';
+        const roleLabel = role === 'admin' ? 'Admin' : role === 'editor' ? 'Editor' : 'Visualizador';
+        const roleCls   = 'role-' + role;
+        const key = emailToKey(u.email);
+        const isAdmin = u.email === ADMIN_EMAIL;
+        const roleCell = isAdmin
+          ? '<span class="role-badge ' + roleCls + '">' + roleLabel + '</span>'
+          : '<select class="role-select" onchange="adminSetRole(\'' + escH(key) + '\',this.value)">'
+            + '<option value="viewer"' + (role==='viewer'?' selected':'') + '>Visualizador</option>'
+            + '<option value="editor"' + (role==='editor'?' selected':'') + '>Editor</option>'
+            + '<option value="admin"'  + (role==='admin' ?' selected':'') + '>Admin</option>'
+            + '</select>';
+        return '<tr>'
+          + '<td>' + avatar + escH(u.name || '—') + '</td>'
+          + '<td class="td-muted">' + escH(u.email) + '</td>'
+          + '<td class="td-muted">' + escH(u.firstAccessStr || '—') + '</td>'
+          + '<td class="td-muted">' + escH(u.lastAccessStr  || '—') + '</td>'
+          + '<td class="td-muted" style="text-align:center;">' + (u.accessCount || 1) + '</td>'
+          + '<td>' + roleCell + '</td>'
+          + '</tr>';
+      }).join('');
+    }
+
+    view.innerHTML =
+      // Stats
+      '<div class="admin-section">'
+      + '<div class="admin-section-header"><i data-lucide="bar-chart-2"></i> Visão Geral</div>'
+      + '<div class="admin-stats-grid">'
+      + '<div class="admin-stat accent"><div class="as-label">Total de POPs</div><div class="as-value">' + pops.length + '</div></div>'
+      + '<div class="admin-stat"><div class="as-label">Setores utilizados</div><div class="as-value">' + new Set(pops.map(function(p){return p.sector;})).size + '</div></div>'
+      + '<div class="admin-stat"><div class="as-label">Setores disponíveis</div><div class="as-value">7</div></div>'
+      + '<div class="admin-stat"><div class="as-label">Usuários registrados</div><div class="as-value" id="stat-fb-users">' + userCount + '</div></div>'
+      + '<div class="admin-stat"><div class="as-label">Total de acessos</div><div class="as-value" id="stat-fb-accesses">' + accessCount + '</div></div>'
+      + '</div></div>'
+
+      // Configurações
+      + '<div class="admin-section">'
+      + '<div class="admin-section-header"><i data-lucide="settings"></i> Configurações do Sistema</div>'
+      + '<div>'
+      + '<div class="form-label" style="margin-bottom:6px;">OpenAI API Key</div>'
+      + '<div class="admin-key-row">'
+      + '<input type="password" id="admin-gemkey" value="' + escH(gemKey) + '" placeholder="sk-..." autocomplete="off" />'
+      + '<button class="btn-sm" onclick="adminSaveGemKey()">Salvar</button>'
+      + '</div>'
+      + '<div class="admin-key-hint ' + (gemKey ? 'ok' : '') + '">' + (gemKey ? '✓ Chave configurada' : 'Não configurada — necessária para o chat IA') + '</div>'
+      + '</div></div>'
+
+      // Tabela de usuários
+      + '
+    setTimeout(reinitSectorMgmt, 100);
+
+  function renderAdminPanel(fbUsers, fbLog, fbPopsLog) {
+    const view   = document.getElementById('admin-view');
+    const gemKey = localStorage.getItem('v4_openai_key') || '';
+
+    const userCount   = fbUsers ? Object.keys(fbUsers).length : '—';
+    const accessCount = fbLog   ? Object.keys(fbLog).length   : '—';
+
+    const tableRows = pops.length
+      ? pops.map(function (p, i) {
+          return '<tr>'
+            + '<td>' + escH(p.name) + '</td>'
+            + '<td class="td-muted">' + escH(SECTORS[p.sector]?.name || '—') + '</td>'
+            + '<td class="td-muted">' + escH(p.author || '—') + '</td>'
+            + '<td class="td-muted">' + escH(p.date) + '</td>'
+            + '<td class="td-link"><a href="' + escH(p.link) + '" target="_blank" rel="noopener"><i data-lucide="external-link"></i> Abrir</a></td>'
+            + '<td><div class="td-actions">'
+            + '<button class="pop-card-edit" title="Editar" onclick="adminEditPop(' + i + ')"><i data-lucide="pencil"></i></button>'
+            + '<button class="pop-card-delete" title="Excluir" onclick="adminDeletePop(' + i + ')"><i data-lucide="trash-2"></i></button>'
+            + '</div></td>'
+            + '</tr>';
+        }).join('')
+      : '<tr><td colspan="6" class="admin-empty">Nenhum POP cadastrado ainda.</td></tr>';
+
+    // Tabela de usuários Firebase
+    let usersRows = '<tr><td colspan="5" class="admin-empty">Nenhum usuário registrado ainda.</td></tr>';
+    if (fbUsers) {
+      const arr = Object.values(fbUsers).sort(function(a, b) {
+        return (b.lastAccess || 0) - (a.lastAccess || 0);
+      });
+      usersRows = arr.map(function(u) {
+        const avatar = u.picture
+          ? '<img src="' + escH(u.picture) + '" style="width:28px;height:28px;border-radius:50%;vertical-align:middle;margin-right:8px;" />'
+          : '<span style="display:inline-block;width:28px;height:28px;border-radius:50%;background:var(--red);margin-right:8px;vertical-align:middle;"></span>';
+        const role = u.role || 'viewer';
+        const roleLabel = role === 'admin' ? 'Admin' : role === 'editor' ? 'Editor' : 'Visualizador';
+        const roleCls   = 'role-' + role;
+        const key = emailToKey(u.email);
+        const isAdmin = u.email === ADMIN_EMAIL;
+        const roleCell = isAdmin
+          ? '<span class="role-badge ' + roleCls + '">' + roleLabel + '</span>'
+          : '<select class="role-select" onchange="adminSetRole(\'' + escH(key) + '\',this.value)">'
+            + '<option value="viewer"' + (role==='viewer'?' selected':'') + '>Visualizador</option>'
+            + '<option value="editor"' + (role==='editor'?' selected':'') + '>Editor</option>'
+            + '<option value="admin"'  + (role==='admin' ?' selected':'') + '>Admin</option>'
+            + '</select>';
+        return '<tr>'
+          + '<td>' + avatar + escH(u.name || '—') + '</td>'
+          + '<td class="td-muted">' + escH(u.email) + '</td>'
+          + '<td class="td-muted">' + escH(u.firstAccessStr || '—') + '</td>'
+          + '<td class="td-muted">' + escH(u.lastAccessStr  || '—') + '</td>'
+          + '<td class="td-muted" style="text-align:center;">' + (u.accessCount || 1) + '</td>'
+          + '<td>' + roleCell + '</td>'
+          + '</tr>';
+      }).join('');
+    }
+
+    view.innerHTML =
+      // Stats
+      '<div class="admin-section">'
+      + '<div class="admin-section-header"><i data-lucide="bar-chart-2"></i> Visão Geral</div>'
+      + '<div class="admin-stats-grid">'
+      + '<div class="admin-stat accent"><div class="as-label">Total de POPs</div><div class="as-value">' + pops.length + '</div></div>'
+      + '<div class="admin-stat"><div class="as-label">Setores utilizados</div><div class="as-value">' + new Set(pops.map(function(p){return p.sector;})).size + '</div></div>'
+      + '<div class="admin-stat"><div class="as-label">Setores disponíveis</div><div class="as-value">7</div></div>'
+      + '<div class="admin-stat"><div class="as-label">Usuários registrados</div><div class="as-value" id="stat-fb-users">' + userCount + '</div></div>'
+      + '<div class="admin-stat"><div class="as-label">Total de acessos</div><div class="as-value" id="stat-fb-accesses">' + accessCount + '</div></div>'
+      + '</div></div>'
+
+      // Configurações
+      + '<div class="admin-section">'
+      + '<div class="admin-section-header"><i data-lucide="settings"></i> Configurações do Sistema</div>'
+      + '<div>'
+      + '<div class="form-label" style="margin-bottom:6px;">OpenAI API Key</div>'
+      + '<div class="admin-key-row">'
+      + '<input type="password" id="admin-gemkey" value="' + escH(gemKey) + '" placeholder="sk-..." autocomplete="off" />'
+      + '<button class="btn-sm" onclick="adminSaveGemKey()">Salvar</button>'
+      + '</div>'
+      + '<div class="admin-key-hint ' + (gemKey ? 'ok' : '') + '">' + (gemKey ? '✓ Chave configurada' : 'Não configurada — necessária para o chat IA') + '</div>'
+      + '</div></div>'
+
+      // Tabela de usuários
       + '<div class="admin-section">'
       + '<div class="admin-section-header"><i data-lucide="users"></i> Usuários &amp; Acessos <span style="font-weight:400;color:var(--gray-text);font-size:12px;margin-left:4px;">(' + userCount + ' usuários)</span></div>'
       + '<div class="admin-table-wrap"><table class="admin-table">'
@@ -2599,6 +2813,238 @@ A Central detecta automaticamente o serviço pelo link: Google Drive, OneDrive, 
   };
 
 })(); // fim IIFE auth
+
+
+// ===== GERENCIAMENTO DE SETORES CUSTOMIZADOS =====
+const SECTOR_ICONS_LIST=['briefcase','megaphone','trending-up','settings','dollar-sign','users','star','zap','shield','globe','target','layout-grid','bar-chart-2','pie-chart','package','truck','heart','award','book','code','database','cpu','monitor','phone','mail','calendar','clock','map','flag','tag','layers','tool','wrench','box','archive','file-text','clipboard','git-branch','headphones','music','camera','image','video','shopping-cart','credit-card','building','home','graduation-cap','flask','microscope','leaf','sun','moon'];
+function loadCustomSectors(){try{return JSON.parse(localStorage.getItem('v4_custom_sectors')||'[]');}catch(e){return[];}}
+function saveCustomSectors(s){localStorage.setItem('v4_custom_sectors',JSON.stringify(s));}
+function getBuiltinSectors(){
+  const navItems=document.querySelectorAll('.nav-item[onclick*="openSector"]');
+  const sectorsGrid=document.getElementById('sectors-grid');
+  const cards=sectorsGrid?sectorsGrid.querySelectorAll('.sector-card:not([data-custom-sector])'):[];
+  return Array.from(navItems).map(function(item,idx){
+    const card=cards[idx];
+    const iconEl=card?card.querySelector('.sector-icon svg'):null;
+    const iconName=iconEl?(iconEl.getAttribute('data-lucide')||'briefcase'):'briefcase';
+    const badge=card&&card.querySelector('.sector-badge')?card.querySelector('.sector-badge').textContent:'';
+    const sub=card&&card.querySelector('.sector-sub')?card.querySelector('.sector-sub').textContent:'';
+    const name=card&&card.querySelector('.sector-name')?card.querySelector('.sector-name').textContent:item.textContent.trim();
+    const pcEl=card?card.querySelector('.pop-count strong'):null;
+    return{id:idx,name:name,sub:sub,badge:badge,icon:iconName,popCount:pcEl?parseInt(pcEl.textContent):0,isBuiltin:true};
+  });
+}
+function reinstallSectorSection(){
+  if(document.getElementById('admin-sectors-section'))return;
+  const adminView=document.getElementById('admin-view');
+  if(!adminView)return;
+  let targetSection=null;
+  adminView.querySelectorAll('.admin-section').forEach(function(sec){
+    const h=sec.querySelector('.admin-section-header');
+    if(h&&h.textContent.includes('Todos os POPs'))targetSection=sec;
+  });
+  const h='<div class="admin-section" id="admin-sectors-section"><div class="admin-section-header"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg> Gerenciar Setores <span id="sector-count-admin" style="font-size:12px;font-weight:400;color:#888;margin-left:6px"></span></div><div class="sector-mgmt-grid" id="sector-mgmt-grid"></div></div>';
+  if(targetSection){targetSection.insertAdjacentHTML('beforebegin',h);}else{adminView.insertAdjacentHTML('beforeend',h);}
+}
+function renderSectorMgmt(){
+  const grid=document.getElementById('sector-mgmt-grid');
+  const countEl=document.getElementById('sector-count-admin');
+  if(!grid)return;
+  const builtins=getBuiltinSectors();
+  const custom=loadCustomSectors();
+  const all=builtins.concat(custom.map(function(c,i){return Object.assign({},c,{id:builtins.length+i,isBuiltin:false});}));
+  if(countEl)countEl.textContent='('+all.length+' setores'+(custom.length>0?', '+custom.length+' personalizados':'')+')';
+  let h='';
+  all.forEach(function(s,idx){
+    const isCustom=!s.isBuiltin;
+    const customIdx=idx-builtins.length;
+    const tag=isCustom?'<span class="sector-tag-custom">Novo</span>':'';
+    const btn=isCustom
+      ?'<button class="sector-mgmt-btn delete" onclick="deleteSectorMgmt('+customIdx+')" title="Remover"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg> Remover</button>'
+      :'<button class="sector-mgmt-btn disabled-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Padrao</button>';
+    h+='<div class="sector-mgmt-card '+(isCustom?'is-custom':'')+'"><div class="sector-mgmt-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="'+(s.icon||'briefcase')+'"></svg></div><div class="sector-mgmt-info"><div class="sector-mgmt-name">'+esc(s.name)+tag+'</div><div class="sector-mgmt-sub">'+esc(s.sub||'-')+'</div><span class="sector-mgmt-badge">'+esc(s.badge||'-')+'</span></div><div class="sector-mgmt-actions">'+btn+'</div></div>';
+  });
+  h+='<button class="sector-add-btn" onclick="openSectorModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Novo Setor</button>';
+  grid.innerHTML=h;
+  if(window.lucide)lucide.createIcons();
+}
+function injectCustomSectorsIntoApp(){
+  const builtins=getBuiltinSectors();
+  const custom=loadCustomSectors();
+  const nav=document.querySelector('nav');
+  if(!nav)return;
+  nav.querySelectorAll('.nav-item[data-custom-sector]').forEach(function(el){el.remove();});
+  const adminLabel=Array.from(nav.querySelectorAll('.nav-label')).find(function(el){return el.textContent.trim().toLowerCase().includes('administra');});
+  custom.forEach(function(s,idx){
+    const sectorIdx=builtins.length+idx;
+    const navItem=document.createElement('div');
+    navItem.className='nav-item';
+    navItem.setAttribute('data-custom-sector',idx);
+    navItem.setAttribute('id','nav-'+sectorIdx);
+    navItem.setAttribute('onclick','openSector('+sectorIdx+')');
+    navItem.innerHTML='<span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="'+(s.icon||'briefcase')+'"></svg></span> '+esc(s.name);
+    if(adminLabel){nav.insertBefore(navItem,adminLabel);}else{nav.appendChild(navItem);}
+  });
+  const sectorSelect=document.getElementById('f-sector');
+  if(sectorSelect){
+    Array.from(sectorSelect.options).filter(function(o){return o.getAttribute('data-custom');}).forEach(function(o){o.remove();});
+    custom.forEach(function(s,idx){
+      const sectorIdx=builtins.length+idx;
+      const option=new Option(s.name+(s.sub?' - '+s.sub:''),sectorIdx);
+      option.setAttribute('data-custom','1');
+      sectorSelect.appendChild(option);
+    });
+  }
+  const sectorsGrid=document.getElementById('sectors-grid');
+  if(sectorsGrid){
+    sectorsGrid.querySelectorAll('.sector-card[data-custom-sector]').forEach(function(el){el.remove();});
+    custom.forEach(function(s,idx){
+      const sectorIdx=builtins.length+idx;
+      const pops=JSON.parse(localStorage.getItem('v4_pops')||'[]');
+      const popCount=pops.filter(function(p){return p.sector===sectorIdx;}).length;
+      const card=document.createElement('div');
+      card.className='sector-card';
+      card.setAttribute('data-custom-sector',idx);
+      card.setAttribute('onclick','openSector('+sectorIdx+')');
+      card.style.cursor='pointer';
+      card.innerHTML='<div class="sector-top"><div class="sector-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-lucide="'+(s.icon||'briefcase')+'"></svg></div>'+(s.badge?'<span class="sector-badge">'+esc(s.badge)+'</span>':'')+'</div><div class="sector-name">'+esc(s.name)+'</div><div class="sector-sub">'+esc(s.sub||'')+'</div><div class="sector-footer"><div class="pop-count"><strong>'+popCount+'</strong> POPs cadastrados</div><span class="sector-arrow"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span></div>';
+      sectorsGrid.appendChild(card);
+    });
+    const scEl=document.getElementById('sector-count');
+    if(scEl)scEl.textContent=(builtins.length+custom.length)+' areas';
+  }
+  patchOpenSectorForCustom(builtins,custom);
+  if(window.lucide)lucide.createIcons();
+  custom.forEach(function(s,idx){const ev=document.getElementById('custom-sector-view-'+idx);if(ev)ev.remove();});
+}
+function patchOpenSectorForCustom(builtins,custom){
+  if(!custom||custom.length===0)return;
+  if(!window._originalOpenSector)window._originalOpenSector=window.openSector;
+  window.openSector=function(idx){
+    if(idx<builtins.length){window._originalOpenSector(idx);return;}
+    const customIdx=idx-builtins.length;
+    const sector=custom[customIdx];
+    if(!sector)return;
+    document.getElementById('page-title').textContent=sector.name;
+    document.getElementById('page-sub').textContent=sector.sub||'';
+    document.querySelectorAll('.content > div').forEach(function(el){el.classList.remove('active');if(!el.classList.contains('hidden'))el.classList.add('hidden');});
+    let customView=document.getElementById('custom-sector-view-'+customIdx);
+    if(!customView){customView=document.createElement('div');customView.id='custom-sector-view-'+customIdx;customView.className='sector-view';document.querySelector('.content').appendChild(customView);}
+    const pops=JSON.parse(localStorage.getItem('v4_pops')||'[]');
+    const sectorPops=pops.filter(function(p){return p.sector===idx;});
+    let popCards='';
+    if(sectorPops.length===0){
+      popCards='<div style="text-align:center;padding:60px 20px;color:#666"><p style="font-size:16px;margin-bottom:20px">Nenhum processo cadastrado neste setor ainda.</p><button onclick="openModal()" style="background:#e02020;color:#fff;border:none;border-radius:8px;padding:12px 24px;font-size:14px;font-weight:600;cursor:pointer">+ Adicionar primeiro POP</button></div>';
+    }else{
+      sectorPops.forEach(function(pop){popCards+='<div class="pop-card"><div class="pop-info"><div class="pop-name">'+esc(pop.name)+'</div>'+(pop.author?'<div class="pop-author">'+esc(pop.author)+'</div>':'')+'</div><div class="pop-actions">'+(pop.link?'<a href="'+pop.link+'" target="_blank" class="pop-btn primary">Abrir</a>':'')+'</div></div>';});
+    }
+    customView.innerHTML='<div class="back-btn" onclick="showHome()" style="display:flex;align-items:center;gap:6px;color:#aaa;cursor:pointer;font-size:13px;margin-bottom:20px;width:fit-content"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Voltar</div><div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid #2a2a2a"><div style="width:56px;height:56px;background:#1e0808;border-radius:14px;display:flex;align-items:center;justify-content:center;color:#e02020"><svg xmlns=\'http://www.w3.org/2000/svg\' width=\'28\' height=\'28\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' data-lucide=\''+(sector.icon||'briefcase')+'\'></svg></div><div><h2 style=\'font-size:22px;font-weight:700;color:#fff;margin:0\'>'+esc(sector.name)+(sector.sub?' - '+esc(sector.sub):'')+'</h2><p style=\'color:#888;font-size:14px;margin:4px 0 0\'>Processos operacionais padrao do setor</p></div></div><div class=\'pop-list\'>'+popCards+'</div><button onclick=\'openModal()\' style=\'margin-top:20px;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#aaa;padding:12px 20px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px\'><svg width=\'14\' height=\'14\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\'><line x1=\'12\' y1=\'5\' x2=\'12\' y2=\'19\'/><line x1=\'5\' y1=\'12\' x2=\'19\' y2=\'12\'/></svg> Adicionar POP</button>';
+    customView.classList.remove('hidden');
+    customView.classList.add('active');
+    if(window.lucide)lucide.createIcons();
+    document.querySelectorAll('.nav-item').forEach(function(el){el.classList.remove('active');});
+    const navEl=document.getElementById('nav-'+idx);
+    if(navEl)navEl.classList.add('active');
+  };
+}
+function openSectorModal(){
+  document.getElementById('sform-name').value='';
+  document.getElementById('sform-sub').value='';
+  document.getElementById('sform-badge').value='';
+  document.getElementById('sform-icon').value='briefcase';
+  document.getElementById('sector-modal-title').textContent='Novo Setor';
+  const iconGrid=document.getElementById('sform-icon-grid');
+  let h='';
+  SECTOR_ICONS_LIST.forEach(function(icon){h+='<div class="sector-icon-option '+(icon==='briefcase'?'selected':'')+'" onclick="selectSectorIcon(\''+icon+'\')" title="'+icon+'"><svg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\' data-lucide=\''+icon+'\' ></svg></div>';});
+  iconGrid.innerHTML=h;
+  if(window.lucide)lucide.createIcons();
+  document.getElementById('sector-modal-overlay').classList.add('open');
+  document.getElementById('sform-name').focus();
+}
+function closeSectorModal(){document.getElementById('sector-modal-overlay').classList.remove('open');}
+function selectSectorIcon(icon){
+  document.getElementById('sform-icon').value=icon;
+  document.querySelectorAll('.sector-icon-option').forEach(function(el){el.classList.remove('selected');});
+  const all=Array.from(document.querySelectorAll('.sector-icon-option'));
+  const clicked=all.find(function(el){const svg=el.querySelector('svg');return svg&&svg.getAttribute('data-lucide')===icon;});
+  if(clicked)clicked.classList.add('selected');
+}
+function saveSectorModal(){
+  const name=document.getElementById('sform-name').value.trim();
+  const sub=document.getElementById('sform-sub').value.trim();
+  const badge=document.getElementById('sform-badge').value.trim();
+  const icon=document.getElementById('sform-icon').value||'briefcase';
+  if(!name){document.getElementById('sform-name').style.borderColor='#e02020';document.getElementById('sform-name').focus();showToast('Por favor, informe o nome do setor.');return;}
+  document.getElementById('sform-name').style.borderColor='';
+  const builtins=getBuiltinSectors();
+  const custom=loadCustomSectors();
+  const allNames=builtins.map(function(s){return s.name.toLowerCase();}).concat(custom.map(function(s){return s.name.toLowerCase();}));
+  if(allNames.indexOf(name.toLowerCase())>=0){showToast('Ja existe um setor com este nome.');return;}
+  custom.push({name:name,sub:sub,badge:badge,icon:icon,createdAt:new Date().toLocaleDateString('pt-BR')});
+  saveCustomSectors(custom);
+  closeSectorModal();
+  injectCustomSectorsIntoApp();
+  reinstallSectorSection();
+  renderSectorMgmt();
+  showToast('Setor "'+name+'" criado com sucesso!');
+}
+function deleteSectorMgmt(customIdx){
+  const custom=loadCustomSectors();
+  if(customIdx<0||customIdx>=custom.length)return;
+  const sector=custom[customIdx];
+  const pops=JSON.parse(localStorage.getItem('v4_pops')||'[]');
+  const builtins=getBuiltinSectors();
+  const sectorId=builtins.length+customIdx;
+  const popsInSector=pops.filter(function(p){return p.sector===sectorId;});
+  if(popsInSector.length>0){showToast('Nao e possivel remover: este setor possui '+popsInSector.length+' POP(s) cadastrado(s).');return;}
+  if(!confirm('Deseja remover o setor "'+sector.name+'"?'))return;
+  custom.splice(customIdx,1);
+  saveCustomSectors(custom);
+  injectCustomSectorsIntoApp();
+  reinstallSectorSection();
+  renderSectorMgmt();
+  showToast('Setor removido com sucesso!');
+}
+function reinitSectorMgmt(){
+  reinstallSectorSection();
+  renderSectorMgmt();
+  injectCustomSectorsIntoApp();
+  const overlay=document.getElementById('sector-modal-overlay');
+  if(overlay&&!overlay._hasClickListener){overlay._hasClickListener=true;overlay.addEventListener('click',function(e){if(e.target===overlay)closeSectorModal();});}
+}
+document.addEventListener('DOMContentLoaded',function(){setTimeout(reinitSectorMgmt,500);});
+// ===== FIM GERENCIAMENTO DE SETORES =====
+
 </script>
+
+<!-- Modal Novo Setor -->
+<div id="sector-modal-overlay">
+  <div id="sector-modal">
+    <h2 id="sector-modal-title">Novo Setor</h2>
+    <p class="modal-sub">Crie um novo setor para organizar seus POPs</p>
+    <div class="sector-form-group">
+      <label class="sector-form-label">Nome do Setor *</label>
+      <input class="sector-form-input" id="sform-name" type="text" placeholder="ex: Marketing, Juridico, RH..." maxlength="30">
+    </div>
+    <div class="sector-form-group">
+      <label class="sector-form-label">Subtitulo</label>
+      <input class="sector-form-input" id="sform-sub" type="text" placeholder="ex: Estrategia & Branding..." maxlength="30">
+    </div>
+    <div class="sector-form-group">
+      <label class="sector-form-label">Categoria / Badge</label>
+      <input class="sector-form-input" id="sform-badge" type="text" placeholder="ex: Crescimento, Legal, Pessoas..." maxlength="20">
+    </div>
+    <div class="sector-form-group">
+      <label class="sector-form-label">Icone</label>
+      <div class="sector-icon-grid" id="sform-icon-grid"></div>
+      <input type="hidden" id="sform-icon" value="briefcase">
+    </div>
+    <div class="sector-modal-footer">
+      <button class="sector-btn-cancel" onclick="closeSectorModal()">Cancelar</button>
+      <button class="sector-btn-save" onclick="saveSectorModal()">Salvar Setor</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
